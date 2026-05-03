@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.venv/
+venv/
+.env
+
+# Logs & runtime
+*.log
+*.pid
+*.tmp
+app.log
+channel_avatar_cache.json
+scan_state.json
+window_config.json
+avatar_cache/
+webview_data/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Build artifacts
+*.exe
+*.msi
+*.zip
+*.tar.gz
