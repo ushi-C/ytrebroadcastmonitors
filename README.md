@@ -84,7 +84,6 @@ cd frontend && npm run preview
 - `window_config.json`
 - `webview_data/`
 
-这些文件已通过 `.gitignore` 忽略，避免污染仓库。
 
 ## License
 
