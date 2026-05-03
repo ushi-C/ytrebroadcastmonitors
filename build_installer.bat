@@ -6,11 +6,11 @@ echo ========================================
 echo     YVmonitor Installer Build
 echo ========================================
 
-:: ===== 1. 先构建 EXE =====
+:: ===== 1. Build EXE =====
 echo.
 echo [1/2] Building core executable...
 
-call build_core.bat
+call build.bat
 if errorlevel 1 (
   echo [ERROR] Core build failed.
   exit /b 1
@@ -21,20 +21,20 @@ if not exist "dist\YVmonitor.exe" (
   exit /b 1
 )
 
-:: ===== 2. 查找 Inno Setup =====
+:: ===== 2. Locate Inno Setup =====
 echo.
 echo [2/2] Locating Inno Setup compiler...
 
 set "ISCC_CMD="
 
-:: 优先 PATH
+:: Check PATH first
 where iscc >nul 2>nul
 if not errorlevel 1 (
   set "ISCC_CMD=iscc"
   goto :build
 )
 
-:: 常见安装路径
+:: Common installation paths
 for %%P in (
   "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe"
   "%ProgramFiles%\Inno Setup 6\ISCC.exe"
@@ -53,7 +53,7 @@ exit /b 1
 :build
 echo Using ISCC: %ISCC_CMD%
 
-:: 默认安装目录
+:: Default install directory
 set "APP_DEFAULT_DIR={autopf}\YVmonitor"
 
 echo Installer target directory: %APP_DEFAULT_DIR%
