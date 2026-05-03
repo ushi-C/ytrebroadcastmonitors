@@ -33,15 +33,15 @@
       <button id="addBtn" class="add-btn" :disabled="layout.length >= MAX_PLAYERS" @click="addPlayer()">
         ＋ 添加窗口
       </button>
-      <button id="btnRefreshAll" class="tb-secondary" @click="refreshAll">↻ 全部刷新</button>
+      <button id="btnRefreshAll" class="tb-secondary" @click="refreshAll">全域刷新</button>
       <span id="countBadge" class="count-badge">{{ layout.length }} / {{ MAX_PLAYERS }} 个窗口</span>
     </div>
 
     <!-- Desk -->
     <div id="desk" ref="deskEl">
       <div id="empty-hint" :style="{ display: layout.length === 0 ? 'block' : 'none' }">
-        <strong>暂无播放窗口</strong>
-        点击「添加窗口」开始监播
+        <strong>系统待命 SYSTEM READY</strong>
+        请添加播放窗口或在「频道信号」中发送直播到播放器
       </div>
 
       <!-- Windows (shell only, iframes rendered separately) -->

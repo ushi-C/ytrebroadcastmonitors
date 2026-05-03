@@ -8,7 +8,7 @@
           <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" opacity=".3"/>
           <circle cx="10" cy="10" r="3"/>
         </svg>
-        频道监测
+        频道信号
       </button>
       <button id="tab-player" class="tab-btn" :class="{ active: activeTab === 'player' }" @click="switchTab('player')">
         <svg viewBox="0 0 20 20" fill="currentColor">

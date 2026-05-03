@@ -2,7 +2,7 @@
   <!-- Window shell (absolutely positioned, sized by parent via style prop) -->
   <div class="wm-window" :id="`card-${id}`" :style="windowStyle">
     <div class="wm-titlebar" :id="`titlebar-${id}`" :style="titleStyle">
-      <span class="wm-drag-handle" title="拖拽换位" @mousedown.prevent="onDragStart">⠿</span>
+      <span class="wm-drag-handle" title="换位" @mousedown.prevent="onDragStart">⠿</span>
       <span class="wm-title-text">监测窗口 #{{ id }}{{ statusMsg ? '  · ' + statusMsg : '' }}</span>
     </div>
     <div class="wm-viewport">

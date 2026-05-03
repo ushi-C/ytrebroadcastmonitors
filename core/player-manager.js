@@ -145,8 +145,8 @@
 
     win.innerHTML = `
     <div class="wm-titlebar" id="titlebar-${id}">
-      <span class="wm-drag-handle" title="拖拽换位">⠿</span>
-      <span class="wm-title-text">监测窗口 #${id}</span>
+      <span class="wm-drag-handle" title="换位">⠿</span>
+      <span class="wm-title-text">播放窗口 #${id}</span>
     </div>
     <div class="wm-viewport">
       <div id="placeholder-${id}" class="video-placeholder">

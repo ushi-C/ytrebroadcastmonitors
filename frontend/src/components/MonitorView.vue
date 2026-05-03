@@ -81,6 +81,7 @@ let searchTimer = null
 // Pending avatar retry tracking
 const pendingAvatarIds = new Set()
 const renderedKeys = new Set()
+let avatarPollGeneration = 0   // 每次新扫描递增，用于取消过期的 avatar 轮询
 
 // --- Scan ---
 
@@ -93,6 +94,7 @@ async function startScan() {
   appState.scanRenderedKeys = new Set()
   appState.searchRenderedKeys = new Set()
 
+  avatarPollGeneration++     // 让旧的 pollPendingAvatars 循环自动停止
   scanRunning.value = true
   statusText.value = '正在启动扫描…'
 
@@ -145,7 +147,7 @@ async function checkStatus() {
       pollTimer = null
       const n = list.length
       statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
-      if (pendingAvatarIds.size > 0) pollPendingAvatars(0, new Set(renderedKeys))
+      if (pendingAvatarIds.size > 0) pollPendingAvatars(0, avatarPollGeneration)
     }
   } catch (e) {
     statusText.value = '后端未连接 (需启动 uvicorn)'
@@ -166,10 +168,11 @@ function updateAvatar(item, byId) {
   pendingAvatarIds.delete(item.id)
 }
 
-function pollPendingAvatars(attempt, keysSnapshot) {
+function pollPendingAvatars(attempt, generation) {
   if (pendingAvatarIds.size === 0 || attempt >= 10) return
   setTimeout(async () => {
-    if (renderedKeys !== keysSnapshot && attempt > 0) return
+    // 如果已经开始了新扫描，停止此轮询
+    if (generation !== avatarPollGeneration) return
     try {
       const state = await getStatus()
       const list = state.results || []
@@ -179,7 +182,7 @@ function pollPendingAvatars(attempt, keysSnapshot) {
         if (it) updateAvatar(it, byId)
       }
     } catch (_) {}
-    pollPendingAvatars(attempt + 1, keysSnapshot)
+    pollPendingAvatars(attempt + 1, generation)
   }, 2000)
 }
 

@@ -83,7 +83,7 @@ body {
 .view { display: none; flex: 1; min-height: 0; flex-direction: column }
 .view.active { display: flex }
 
-/* ══ 频道监测 ════════════════════════════════════════════════════════════════ */
+/* ══ 频道信号 ════════════════════════════════════════════════════════════════ */
 #view-monitor {
   position: relative;
   background: radial-gradient(ellipse at 50% 0%, rgba(100,30,180,.07) 0%, transparent 65%);
