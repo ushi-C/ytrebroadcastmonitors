@@ -17,6 +17,7 @@ class ScanStateStore:
         self._lock = RLock()
         self._state: dict[str, Any] = {
             "is_running": False,
+            "is_monitoring": False,
             "progress": 0,
             "total": 0,
             "results": [],
@@ -33,7 +34,13 @@ class ScanStateStore:
 
     def reset_for_new_scan(self) -> None:
         with self._lock:
-            self._state.update(is_running=True, progress=0, total=0, results=[])
+            self._state.update(
+                is_running=True,
+                is_monitoring=False,
+                progress=0,
+                total=0,
+                results=[],
+            )
 
     def set_total(self, total: int) -> None:
         with self._lock:
@@ -52,3 +59,11 @@ class ScanStateStore:
     def set_running(self, is_running: bool) -> None:
         with self._lock:
             self._state["is_running"] = is_running
+
+    def set_monitoring(self, is_monitoring: bool) -> None:
+        with self._lock:
+            self._state["is_monitoring"] = is_monitoring
+
+    def replace_results(self, items: list[dict]) -> None:
+        with self._lock:
+            self._state["results"] = list(items)
