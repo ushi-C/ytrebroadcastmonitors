@@ -9,7 +9,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: '../backend/static',
+    outDir: 'dist',
     rollupOptions: {
       output: {
         entryFileNames: '[name].js',
