@@ -17,6 +17,7 @@ import logging
 import os
 import re
 import urllib.request
+import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from typing import Optional
 
@@ -29,6 +30,8 @@ from ..models.scan_state_store import ScanStateStore
 EXECUTOR         = ThreadPoolExecutor(max_workers=60)
 SCAN_STATE_STORE = ScanStateStore()
 SCAN_STATE: dict = SCAN_STATE_STORE.state
+_MONITOR_INTERVAL_SEC = 300
+_MONITOR_TOKEN = 0
 
 _HEAD_TIMEOUT = 4
 _YDL_TIMEOUT  = 8
@@ -176,6 +179,36 @@ def fetch_avatar_background(item: dict) -> None:
         pass
 
 
+def _monitor_recheck_sync(item: dict) -> dict | None:
+    """复检卡片：仅在明确确认下播时返回 None；网络异常/404 视为不确定并保留卡片。"""
+    channel_live_url = (item.get("channel_live_url") or "").strip()
+    if not channel_live_url:
+        return item
+
+    channel_id = (item.get("id") or "").strip()
+    name_raw = item.get("name") or ""
+    handle_mark = _extract_handle_mark(channel_live_url) or _extract_handle_mark(name_raw)
+
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True,
+        "playlist_items": "0",
+        "socket_timeout": _YDL_TIMEOUT,
+    }
+    try:
+        with YoutubeDL(opts) as ydl:
+            info = ydl.extract_info(channel_live_url, download=False)
+            if info and info.get("is_live"):
+                checked = check_live_sync(channel_live_url, channel_id, name_raw, handle_mark)
+                return checked or item
+            return None
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError):
+        return item
+    except Exception:
+        return item
+
+
 # ── 频道标识规范化 ────────────────────────────────────────────────────────────
 
 def normalize_channel_live_url(q: str) -> tuple[str, str]:
@@ -214,6 +247,8 @@ async def start_scan_task() -> None:
         SCAN_STATE_STORE.set_running(False)
         return
 
+    global _MONITOR_TOKEN
+    _MONITOR_TOKEN += 1
     SCAN_STATE_STORE.reset_for_new_scan()
     SCAN_STATE_STORE.set_total(len(channels))
     loop       = asyncio.get_running_loop()
@@ -253,6 +288,35 @@ async def start_scan_task() -> None:
             SCAN_STATE_STORE.add_progress(len(batch))
     finally:
         SCAN_STATE_STORE.set_running(False)
+        asyncio.create_task(start_live_monitor_task(_MONITOR_TOKEN))
+
+
+async def start_live_monitor_task(token: int) -> None:
+    """扫描结束后每 5 分钟复检一轮卡片，直到清空或下一轮扫描开始。"""
+    if token != _MONITOR_TOKEN:
+        return
+
+    SCAN_STATE_STORE.set_monitoring(True)
+    loop = asyncio.get_running_loop()
+    try:
+        await asyncio.sleep(_MONITOR_INTERVAL_SEC)
+        while token == _MONITOR_TOKEN and not SCAN_STATE_STORE.is_running:
+            current_items = list(SCAN_STATE["results"])
+            if not current_items:
+                break
+
+            tasks = [loop.run_in_executor(EXECUTOR, _monitor_recheck_sync, item) for item in current_items]
+
+            refreshed = await asyncio.gather(*tasks) if tasks else []
+            live_results = [r for r in refreshed if r]
+            SCAN_STATE_STORE.replace_results(live_results)
+
+            if not live_results:
+                break
+            await asyncio.sleep(_MONITOR_INTERVAL_SEC)
+    finally:
+        if token == _MONITOR_TOKEN:
+            SCAN_STATE_STORE.set_monitoring(False)
 
 
 def _load_channels_csv(file_path: str) -> list[dict]:
