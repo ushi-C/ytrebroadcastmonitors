@@ -116,6 +116,12 @@ async function checkStatus() {
   try {
     const state = await getStatus()
     const list = state.results || []
+    const latestKeys = new Set(list.map(item => monItemKey(item)))
+
+    // Remove cards that are no longer present in backend results
+    monItems.value = monItems.value.filter(item => latestKeys.has(monItemKey(item)))
+    renderedKeys.clear()
+    for (const item of monItems.value) renderedKeys.add(monItemKey(item))
 
     // Incremental render
     for (const item of list) {
