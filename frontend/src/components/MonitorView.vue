@@ -143,10 +143,15 @@ async function checkStatus() {
       if (!pollTimer) pollTimer = setInterval(checkStatus, 2000)
     } else {
       scanRunning.value = false
-      clearInterval(pollTimer)
-      pollTimer = null
       const n = list.length
-      statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
+      if (state.is_monitoring) {
+        statusText.value = n ? `监测中 (当前 ${n} 个直播，每5分钟复检)` : '监测结束: 0 个直播'
+        if (!pollTimer) pollTimer = setInterval(checkStatus, 2000)
+      } else {
+        statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
+        clearInterval(pollTimer)
+        pollTimer = null
+      }
       if (pendingAvatarIds.size > 0) pollPendingAvatars(0, avatarPollGeneration)
     }
   } catch (e) {
