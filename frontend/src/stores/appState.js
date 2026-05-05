@@ -21,7 +21,7 @@ export const appState = reactive({
   // Search
   csvChannels: [],
   fuse: null,
-  checkCache: new Map(),   // key -> { result, ts }
+  checkCache: new Map(),  
   checking: new Set(),
 
   // Toast
@@ -31,4 +31,9 @@ export const appState = reactive({
   // Scale
   scalePct: 100,
   scaleVisible: false,
+
+  // Theme
+  theme: 'neon-purple',         // 当前主题 id
+  themeList: [],                // 由 initTheme() 填入完整列表
+  themeInitialized: false,      // 防止组件在初始化前渲染主题选择器
 })

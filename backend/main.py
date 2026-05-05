@@ -67,7 +67,6 @@ _ac.init(
     logger=LOGGER,
     cache_file=os.path.join(_app_dir(), "channel_avatar_cache.json"),
     cache_dir=os.path.join(_app_dir(), "avatar_cache"),
-    scan_state=_sc.SCAN_STATE,
 )
 _sc.init(logger=LOGGER, app_dir_fn=_app_dir)
 

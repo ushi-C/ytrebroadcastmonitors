@@ -7,8 +7,9 @@
     </div>
     <div class="wm-viewport">
       <div :id="`placeholder-${id}`" class="video-placeholder" :class="{ hidden: iframeSrc !== 'about:blank' }">
+        <!-- YouTube logo 使用主题主色 -->
         <svg width="40" height="40" viewBox="0 0 24 24">
-          <rect width="24" height="24" rx="4" fill="#ff0000"/>
+          <rect width="24" height="24" rx="4" class="placeholder-yt-bg"/>
           <polygon points="10,8 16,12 10,16" fill="#fff"/>
         </svg>
         <span>YouTube Live</span>
@@ -24,7 +25,7 @@
         @keydown.enter="loadVideo"
       />
       <button class="c-btn play" type="button" @click="loadVideo">播放</button>
-      <button class="c-btn ref" type="button" title="刷新本窗" @click="refreshOne">↻</button>
+      <button class="c-btn ref" type="button" title="窗口刷新" @click="refreshOne">↻</button>
       <button class="c-btn ratio" type="button" title="横竖切换" @click="toggleRatio">{{ ratioLabel }}</button>
       <div class="vol-wrap">
         <span class="vol-icon" :id="`vol-icon-${id}`">{{ volIcon }}</span>
@@ -41,8 +42,8 @@ import { extractVideoID } from '../composables/useDomUtils.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
-  slot: { type: Object, default: null }, // { left, top, width, height }
-  iframeEl: { type: Object, default: null }, // ref to iframe DOM managed by parent
+  slot: { type: Object, default: null },
+  iframeEl: { type: Object, default: null },
 })
 
 const emit = defineEmits(['remove', 'drag-swap', 'load-video', 'status'])
@@ -51,7 +52,7 @@ const urlInput = ref('')
 const statusMsg = ref('')
 const isError = ref(false)
 const volume = ref(100)
-const ratioMode = ref('landscape') // 'landscape' | 'portrait'
+const ratioMode = ref('landscape')
 
 const iframeSrc = ref('about:blank')
 
@@ -66,7 +67,7 @@ const windowStyle = computed(() => {
 })
 
 const titleStyle = computed(() => ({
-  color: isError.value ? '#ff6666' : '',
+  color: isError.value ? 'var(--color-error)' : '',
 }))
 
 const volIcon = computed(() => {

@@ -33,11 +33,12 @@
         title="窗口播放"
         @click.stop="sendToPlayer(checkCacheResult(ch))"
       >
+        <!-- 发送图标：使用主题渐变色 -->
         <svg viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient :id="`grad-sd-${ch.id || ch.url}`" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="45%" stop-color="hsl(184,74%,44%)"/>
-              <stop offset="100%" stop-color="hsl(332,87%,70%)"/>
+              <stop offset="45%" :style="`stop-color:var(--icon-grad-a)`"/>
+              <stop offset="100%" :style="`stop-color:var(--icon-grad-b)`"/>
             </linearGradient>
           </defs>
           <g stroke-width="40" :stroke="`url(#grad-sd-${ch.id || ch.url})`" fill="none">
@@ -66,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useApiClient } from '../composables/useApiClient.js'
 import { appState } from '../stores/appState.js'
 
@@ -81,8 +82,7 @@ const emit = defineEmits(['send', 'live-found', 'close'])
 const { checkChannel: apiCheckChannel } = useApiClient()
 const dropdownEl = ref(null)
 
-// Local state for badge/avatar per channel key
-const badgeStates = ref({})  // key -> 'unchecked'|'checking'|'live'|'offline'
+const badgeStates = ref({})
 const avatarSrcs = ref({})
 const cachedNames = ref({})
 const cachedTitles = ref({})

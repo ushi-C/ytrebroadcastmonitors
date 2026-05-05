@@ -35,7 +35,6 @@ _YDL_TIMEOUT = 8
 _logger: logging.Logger | None = None
 _cache_file: str = ""
 _cache_dir: str = ""
-_scan_state: dict | None = None
 
 _inflight_fetch_lock = threading.Lock()
 _inflight_fetch: set[str] = set()
@@ -49,14 +48,12 @@ def init(
     logger: logging.Logger,
     cache_file: str,
     cache_dir: str,
-    scan_state: dict,
 ) -> None:
     """应用启动时注入依赖，必须在使用其他接口前调用。"""
-    global _logger, _cache_file, _cache_dir, _scan_state, _memory_cache, _disk_cache
+    global _logger, _cache_file, _cache_dir, _memory_cache, _disk_cache
     _logger     = logger
     _cache_file = cache_file
     _cache_dir  = cache_dir
-    _scan_state = scan_state
 
     os.makedirs(_cache_dir, exist_ok=True)
 
@@ -194,9 +191,7 @@ def _cleanup_loop() -> None:
             pass
 
 
-def _cleanup_avatar_cache() -> None:
-    if _scan_state and _scan_state.get("is_running"):
-        return
+def _cleanup_avatar_cache():
     _disk_cache.cleanup()
 
 

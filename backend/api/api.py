@@ -72,7 +72,15 @@ def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
 
     @app.get("/api/status")
     async def get_status():
-        return _svc.get_scan_status()
+        # ── Single Writer Principle ────────────────────────────────────────────
+        # ScanStateStore 是唯一写入口；results 中不存储 avatar。
+        # avatar 在此处从缓存派生并注入响应副本（get_scan_status 返回深拷贝），
+        # 不回写 state，monitor 轮次对头像无任何影响。
+        status = _svc.get_scan_status()          # deep-copy snapshot, safe to mutate
+        for r in status.get("results", []):
+            cid = r.get("id")
+            r["avatar"] = _ac.get_cached_avatar(cid) if cid else ""
+        return status
 
     @app.get("/api/avatar")
     def get_avatar(u: str):

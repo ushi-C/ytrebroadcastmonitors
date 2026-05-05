@@ -53,11 +53,12 @@ async def trigger_refresh_scan() -> str:
 
 def get_scan_status() -> dict:
     """返回当前扫描状态的快照副本。"""
-    state = _sc.SCAN_STATE
+    state = _sc.SCAN_STATE_STORE.get_snapshot()
+
     return {
         "is_running": state["is_running"],
         "is_monitoring": state.get("is_monitoring", False),
         "progress":   state["progress"],
         "total":      state["total"],
-        "results":    list(state["results"]),
+        "results":    state["results"],  
     }

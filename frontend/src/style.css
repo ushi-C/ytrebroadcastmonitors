@@ -2,36 +2,101 @@
 :root {
   --primary:       #e8005a;
   --primary2:      #9b30ff;
+
   --bg:            #0a080f;
   --surface:       #13101a;
   --surface2:      #1e1828;
   --border:        #2e2640;
   --text:          #f0ebff;
   --muted:         #7a6d9a;
-  --ctrl-h:        1.7rem;
-  --title-h:       1.2rem;
-  --gap:           6px;
-  --pad:           8px;
   --card-bg:       rgba(30,10,55,.55);
   --card-border-a: rgba(255,180,220,.5);
-  --card-border-b: rgba(160,100,255,.4);
+  --card-border-b: color-mix(in srgb, var(--primary2) 40%, transparent);
   --card-border-c: rgba(255,200,230,.45);
+
+  --grad-title-a:   #ff80b0;
+  --grad-title-b:   #b06fff;
+
+  --tabbar-bg-a:    rgba(20,10,40,.98);
+  --tabbar-bg-b:    rgba(15,8,30,.98);
+
+  --toolbar-bg-a:   rgba(18,10,38,.97);
+  --toolbar-bg-b:   rgba(12,8,28,.97);
+
+  --avatar-ring-a:  #ff4488;
+  --avatar-ring-b:  #9b30ff;
+  --avatar-ring-c:  #ff80b0;
+
+  --icon-grad-a:    #ffb3d9;
+  --icon-grad-b:    #d86fff;
+
+  --live-color:     #ff4466;
+  --color-error:    #ff6666;
+  --send-arrow:     #ff8fab;
+
+  --mon-btn-bg:     rgba(100,40,180,.2);
+  --mon-btn-border: rgba(160,100,255,.3);
+  --mon-btn-color:  rgba(220,190,255,.9);
+  --mon-btn-hover-bg:     rgba(120,50,200,.3);
+  --mon-btn-hover-border: rgba(220,140,255,.6);
+
+  --ctrl-h:  1.7rem;
+  --title-h: 1.2rem;
+  --gap:     6px;
+  --pad:     8px;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
 html, body { height: 100%; overflow: hidden }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: var(--bg);
   color: var(--text);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
+/* ── 中央 LOGO（Y-VISION） ───────────────────────── */
+body::after {
+  content: "Y-VISION";
+  position: fixed;
+  left: 50%;
+  top: 58%;
+  transform: translate(-50%, -50%);
+  font-size: 6rem;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+
+  /* 中空 */
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+
+  /* 轮廓 */
+  -webkit-text-stroke: 1.6px rgba(255,255,255,0.15);
+
+  /* 静态发光 */
+  text-shadow:
+    0 1px 0 rgba(255,255,255,0.06),
+    0 2px 0 rgba(255,255,255,0.05),
+    0 3px 2px rgba(0,0,0,0.6),
+
+    0 0 30px color-mix(in srgb, var(--primary2) 60%, transparent),
+    0 0 100px color-mix(in srgb, var(--primary2) 30%, transparent);
+
+  pointer-events: none;
+  user-select: none;
+  z-index: -1;
+}
+
+/* ── App 容器 ───────────────────────────────────────── */
 #app {
   height: 100%;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 /* ── Tab Bar ─────────────────────────────────────────────────────────────── */
@@ -40,9 +105,9 @@ body {
   align-items: center;
   height: 2.6rem;
   padding: 0 1.25rem;
-  background: linear-gradient(90deg, rgba(20,10,40,.98), rgba(15,8,30,.98));
+  background: linear-gradient(90deg, var(--tabbar-bg-a), var(--tabbar-bg-b));
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 rgba(160,100,255,.12);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--primary2) 12%, transparent);
   flex-shrink: 0;
   z-index: 300;
 }
@@ -53,7 +118,7 @@ body {
   letter-spacing: .02em;
   white-space: nowrap;
   flex-shrink: 0;
-  background: linear-gradient(120deg, #ff80b0, #b06fff);
+  background: linear-gradient(120deg, var(--grad-title-a), var(--grad-title-b));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -93,7 +158,7 @@ body {
   align-items: center;
   gap: 0.75rem;
   padding: 0.6rem 1.25rem;
-  background: linear-gradient(90deg, rgba(18,10,38,.97), rgba(12,8,28,.97));
+  background: linear-gradient(90deg, var(--toolbar-bg-a), var(--toolbar-bg-b));
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   position: relative;
@@ -101,17 +166,17 @@ body {
 #mon-progress { font-size: 0.75rem; color: var(--muted); margin-right: auto }
 .mon-action-btn {
   padding: 0.375rem 0.8rem;
-  background: rgba(100,40,180,.2);
-  border: 1px solid rgba(160,100,255,.3);
+  background: var(--mon-btn-bg);
+  border: 1px solid var(--mon-btn-border);
   border-radius: 0.375rem;
-  color: rgba(220,190,255,.9);
+  color: var(--mon-btn-color);
   font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color .15s, background .15s;
 }
-.mon-action-btn:hover { border-color: rgba(220,140,255,.6); background: rgba(120,50,200,.3) }
+.mon-action-btn:hover { border-color: var(--mon-btn-hover-border); background: var(--mon-btn-hover-bg) }
 .mon-action-btn:disabled { background: #1a1428; border-color: #2e2640; color: #4a3d6a; cursor: not-allowed }
 .monitor-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem }
 
@@ -137,7 +202,7 @@ body {
   height: 100%;
   border-radius: calc(0.875rem - 1.5px);
   overflow: hidden;
-  background: rgba(45,12,80,.055);
+  background: var(--card-bg);
 }
 .mon-card-top {
   display: flex;
@@ -153,7 +218,7 @@ body {
   height: 3.5rem;
   border-radius: 50%;
   padding: 1.5px;
-  background: linear-gradient(135deg, #ff4488, #9b30ff, #ff80b0);
+  background: linear-gradient(135deg, var(--avatar-ring-a), var(--avatar-ring-b), var(--avatar-ring-c));
 }
 .mon-card-img {
   width: 100%;
@@ -236,7 +301,7 @@ body {
   height: 1.75rem;
   flex-shrink: 0;
   border-top: 1px solid rgba(200,150,255,.1);
-  background: rgba(40,8,70,.3);
+  background: rgba(0,0,0,.25);
 }
 .mon-live-badge {
   display: flex;
@@ -246,13 +311,13 @@ body {
   font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: .08em;
-  color: #ff4466;
+  color: var(--live-color);
 }
 .mon-live-dot {
   width: 0.38rem;
   height: 0.38rem;
   border-radius: 50%;
-  background: #ff4466;
+  background: var(--live-color);
   flex-shrink: 0;
 }
 .mon-send-btn {
@@ -282,64 +347,192 @@ body {
 .player-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
   height: 2.8rem;
   padding: 0 1.25rem;
-  background: linear-gradient(90deg, rgba(18,10,38,.98), rgba(12,8,28,.98));
+  background: linear-gradient(90deg, var(--toolbar-bg-a), var(--toolbar-bg-b));
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 rgba(160,100,255,.1);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--primary2) 12%, transparent),
+    inset 0 1px 0 color-mix(in srgb, var(--primary) 5%, transparent);
   flex-shrink: 0;
   z-index: 200;
+  position: relative;
 }
-.layout-btns { display: flex; gap: 0.375rem }
-.layout-btn {
-  display: grid;
-  gap: 2px;
-  padding: 0.35rem;
-  background: rgba(50,20,90,.4);
-  border: 1px solid var(--border);
-  border-radius: 0.375rem;
-  cursor: pointer;
-  transition: border-color .15s, background .15s;
-}
-.layout-btn:hover,
-.layout-btn.active { border-color: rgba(160,80,255,.5); background: rgba(80,30,140,.4) }
-.layout-btn .dot { width: 0.375rem; height: 0.375rem; background: var(--muted); border-radius: 1px }
-.layout-btn.active .dot { background: var(--primary2) }
 
-.add-btn {
+/* 顶部细线装饰，与 tabbar 的渐变呼应 */
+.player-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    color-mix(in srgb, var(--primary) 30%, transparent) 30%,
+    color-mix(in srgb, var(--primary2) 30%, transparent) 70%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+.toolbar-left,
+.toolbar-right {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── 布局切换按钮组 ── */
+.layout-btns {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.2rem;
+  background: color-mix(in srgb, var(--primary2) 6%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.layout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 1.625rem;
+  padding: 0.25rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+}
+
+.layout-btn:hover {
+  border-color: color-mix(in srgb, var(--primary2) 35%, transparent);
+  background: color-mix(in srgb, var(--primary2) 10%, transparent);
+}
+
+.layout-btn.active {
+  border-color: color-mix(in srgb, var(--primary2) 55%, transparent);
+  background: color-mix(in srgb, var(--primary2) 15%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--primary2) 20%, transparent);
+}
+
+
+/* ── 布局图标：SVG 矢量预览 ── */
+.layout-svg {
+  display: block;
+  width: 14px;
+  height: 11px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+  pointer-events: none; /* 防止点击时选中到 svg 元素 */
+}
+
+/* 按钮 Hover 状态 */
+.layout-btn:hover .layout-svg {
+  color: color-mix(in srgb, var(--primary2) 65%, var(--muted));
+}
+
+/* 按钮 Active/选中状态（配合 Vue 的 :class="{ active: ... }"） */
+.layout-btn.active .layout-svg {
+  color: var(--primary2);
+}
+
+/* ── 播放窗口按钮 ── */
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 0.375rem;
-  padding: 0.4rem 0.875rem;
+  padding: 0.375rem 0.8rem;
   background: linear-gradient(120deg, var(--primary), var(--primary2));
   border: none;
   border-radius: 0.5rem;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(155,48,255,.25);
-  transition: opacity .15s;
+  box-shadow:
+    0 2px 10px color-mix(in srgb, var(--primary2) 30%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.15);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  will-change: transform;
 }
-.add-btn:hover { opacity: .85 }
-.add-btn:disabled { background: #2a2040; box-shadow: none; color: #5a4d7a; cursor: not-allowed }
 
-.tb-secondary {
-  padding: 0.4rem 0.75rem;
-  background: rgba(40,20,70,.5);
+.add-btn:hover {
+  opacity: .9;
+  box-shadow:
+    0 3px 16px color-mix(in srgb, var(--primary2) 45%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.2);
+  transform: translateY(-1px);
+}
+
+.add-btn:active {
+  transform: translateY(0);
+}
+
+.add-btn:disabled {
+  background: color-mix(in srgb, var(--surface2) 80%, transparent);
   border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  color: rgba(200,180,240,.8);
-  font-size: 0.75rem;
+  box-shadow: none;
+  color: var(--muted);
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
+}
+
+/* ── 次要操作按钮（全屏刷新等） ── */
+.tb-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.72rem;
+  background: color-mix(in srgb, var(--primary2) 6%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--muted);
+  font-size: 0.725rem;
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: border-color .15s, color .15s;
+  transition: border-color .15s, color .15s, background .15s;
 }
-.tb-secondary:hover { border-color: rgba(160,100,255,.4); color: var(--text) }
-.count-badge { font-size: 0.75rem; color: var(--muted); white-space: nowrap; margin-left: auto }
+
+.tb-secondary:hover {
+  border-color: color-mix(in srgb, var(--primary2) 40%, transparent);
+  background: color-mix(in srgb, var(--primary2) 10%, transparent);
+  color: var(--text);
+}
+
+.tb-secondary:active {
+  background: color-mix(in srgb, var(--primary2) 15%, transparent);
+}
+
+/* ── 计数徽章 ── */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--primary2) 5%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0.875rem;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* 徽章内数字高亮 */
+.count-badge strong {
+  color: color-mix(in srgb, var(--primary2) 80%, var(--text));
+  font-weight: 700;
+}
 
 /* ══ 播放桌面 ════════════════════════════════════════════════════════════════ */
 #desk {
@@ -365,7 +558,7 @@ body {
   display: block;
   font-size: 1rem;
   margin-bottom: 0.375rem;
-  background: linear-gradient(120deg, #ff80b0, #b06fff);
+  background: linear-gradient(120deg, var(--grad-title-a), var(--grad-title-b));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -377,7 +570,7 @@ body {
   flex-direction: column;
   border-radius: 0.6rem;
   overflow: hidden;
-  border: 1px solid rgba(160,100,255,.2);
+  border: 1px solid color-mix(in srgb, var(--primary2) 20%, transparent);
   background: transparent;
   box-shadow: 0 4px 24px rgba(0,0,0,.5), 0 0 0 1px rgba(255,150,220,.04);
   will-change: transform;
@@ -391,8 +584,18 @@ body {
   gap: 0.25rem;
   height: var(--title-h);
   padding: 0 0.375rem;
-  background: linear-gradient(90deg, rgba(25,12,50,.97), rgba(18,8,38,.97));
-  border-bottom: 1px solid rgba(160,100,255,.15);
+  /* 背景渐变 */
+  background: linear-gradient(90deg, var(--toolbar-bg-a), var(--toolbar-bg-b));
+  
+  /* --- 兼容性边框写法 --- */
+  /* 1. 为旧版本浏览器（如 Chrome < 111）提供回退颜色 */
+  /* 这里使用 rgba 和一个近似色，或者直接用变量，透明度设为 0.15 */
+  border-bottom: 1px solid rgba(128, 128, 128, 0.15); 
+  
+  /* 2. 现代浏览器会识别并覆盖上面的设置 */
+  border-bottom: 1px solid color-mix(in srgb, var(--primary2) 15%, transparent);
+  /* ---------------------- */
+
   font-size: 0.6875rem;
   color: var(--muted);
   user-select: none;
@@ -438,7 +641,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
-  background: #050308;
+  background: var(--bg);
   color: var(--muted);
   font-size: 0.75rem;
   pointer-events: none;
@@ -454,7 +657,7 @@ body {
   gap: 0.3rem;
   height: var(--ctrl-h);
   padding: 0.3rem 0.4rem;
-  background: linear-gradient(90deg, rgba(20,10,42,.97), rgba(14,7,32,.97));
+  background: linear-gradient(90deg, var(--toolbar-bg-a), var(--toolbar-bg-b));
   border-top: 1px solid rgba(100,60,180,.2);
   flex-shrink: 0;
   pointer-events: auto;
@@ -471,8 +674,16 @@ body {
   outline: none;
   transition: border-color .15s;
 }
-.url-input:focus { border-color: rgba(160,100,255,.5) }
+/* 输入框聚焦状态 */
+.url-input:focus { 
+  /* 回退方案：使用 50% 透明度的灰色或近似色 */
+  border-color: rgba(128, 128, 128, 0.5); 
+  border-color: color-mix(in srgb, var(--primary2) 50%, transparent); 
+}
+
 .url-input::placeholder { color: var(--muted) }
+
+/* 按钮基础样式 */
 .c-btn {
   flex-shrink: 0;
   padding: 0.25rem 0.5rem;
@@ -483,18 +694,45 @@ body {
   white-space: nowrap;
   cursor: pointer;
   transition: opacity .15s;
+  /* 建议添加：防止按钮文字被意外选中 */
+  -webkit-user-select: none;
+  user-select: none;
 }
-.c-btn.play { background: linear-gradient(120deg, var(--primary), var(--primary2)); color: #fff }
+
+/* 播放按钮 */
+.c-btn.play { 
+  background: linear-gradient(120deg, var(--primary), var(--primary2)); 
+  color: #fff; 
+}
 .c-btn.play:hover { opacity: .85 }
+
+/* 次要按钮（刷新、比例、关闭） */
 .c-btn.ref, .c-btn.ratio, .c-btn.cls {
   background: rgba(40,20,70,.7);
   border: 1px solid rgba(100,60,180,.3);
   color: var(--muted);
 }
-.c-btn.ref:hover  { color: var(--text);   border-color: rgba(160,100,255,.4) }
-.c-btn.ratio      { color: var(--text) }
-.c-btn.ratio:hover{ border-color: rgba(160,100,255,.4) }
-.c-btn.cls:hover  { color: #ffaad4; border-color: rgba(255,100,160,.35) }
+
+/* 刷新按钮悬停 */
+.c-btn.ref:hover { 
+  color: var(--text);   
+  border-color: rgba(128, 128, 128, 0.4); /* 回退方案 */
+  border-color: color-mix(in srgb, var(--primary2) 40%, transparent); 
+}
+
+/* 比例按钮悬停 */
+.c-btn.ratio { color: var(--text) }
+.c-btn.ratio:hover { 
+  border-color: rgba(128, 128, 128, 0.4); /* 回退方案 */
+  border-color: color-mix(in srgb, var(--primary2) 40%, transparent); 
+}
+
+/* 关闭按钮悬停 */
+.c-btn.cls:hover { 
+  color: var(--grad-title-a); 
+  border-color: rgba(128, 128, 128, 0.35); /* 回退方案 */
+  border-color: color-mix(in srgb, var(--primary) 35%, transparent); 
+}
 
 /* ── 音量控制 ────────────────────────────────────────────────────────────── */
 .vol-wrap { display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0 }
@@ -548,7 +786,7 @@ body {
   border-radius: 0.4rem;
   transition: border-color .15s;
 }
-.search-wrap:focus-within { border-color: rgba(160,100,255,.6) }
+.search-wrap:focus-within { border-color: color-mix(in srgb, var(--primary2) 60%, transparent) }
 .search-icon { width: 0.875rem; height: 0.875rem; color: var(--muted); flex-shrink: 0 }
 .search-input {
   flex: 1;
@@ -659,7 +897,7 @@ body {
   border-radius: 0.25rem;
   border: 1px solid;
 }
-.sd-badge.live     { color: #ff4466; border-color: #ff4466; background: rgba(255,68,102,.08) }
+.sd-badge.live     { color: var(--live-color); border-color: var(--live-color); background: rgba(255,68,102,.08) }
 .sd-badge.checking,
 .sd-badge.offline  { background: transparent }
 .sd-badge.checking { color: var(--muted); border-color: #4a3d6a; animation: pulse-text 1s ease-in-out infinite }
@@ -677,7 +915,7 @@ body {
   cursor: pointer;
   transition: background .15s, color .15s;
 }
-.sd-check-btn:hover { background: rgba(100,40,180,.6); color: var(--text) }
+.sd-check-btn:hover { background: color-mix(in srgb, var(--primary2) 60%, transparent); color: var(--text) }
 .sd-send-btn {
   display: flex;
   align-items: center;
@@ -710,7 +948,7 @@ body {
   right: 1.5rem;
   padding: 0.625rem 1rem;
   background: rgba(25,12,48,.97);
-  border: 1px solid rgba(160,80,255,.4);
+  border: 1px solid color-mix(in srgb, var(--primary2) 40%, transparent);
   border-radius: 0.5rem;
   color: var(--text);
   font-size: 0.8125rem;
@@ -736,3 +974,89 @@ body {
   z-index: 9999;
 }
 #scale-tip.show { opacity: 1 }
+
+/* ══ 主题切换器 ══════════════════════════════════════════════════════════════ */
+.theme-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+  padding-right: 0.25rem;
+}
+
+.theme-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 1.625rem;
+  padding: 0 0.55rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 0.875rem;
+  color: var(--muted);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.theme-pill:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--primary2) 25%, transparent);
+  background: rgba(80,30,120,.2);
+}
+.theme-pill.active {
+  color: var(--text);
+  border-color: var(--primary);
+  background: rgba(80,30,120,.3);
+}
+
+/* 双色预览圆点 */
+.theme-dot {
+  flex-shrink: 0;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.12);
+}
+
+.theme-label {
+  /* PingFang SC 黑体*/
+  font-family: "PingFang SC", "Inter", sans-serif;
+  font-size: 0.85rem;      /* 字号 */
+  font-weight: 500;        /* 极粗字体，让颜色更显眼 */
+  letter-spacing: 0.05em;  /* 微调字间距 */
+  
+  /* 基础效果 */
+  opacity: 0.7;            /* 未选中时半透明 */
+  transition: all 0.25s ease;
+  filter: saturate(1.2);   /* 提升颜色饱和度 */
+}
+
+/* 悬停或激活时的特殊效果 */
+.theme-pill:hover .theme-label,
+.theme-pill.active .theme-label {
+  opacity: 1;
+  /* 使用 currentColor 自动根据文字颜色生成外发光 */
+  text-shadow: 0 0 10px currentColor, 0 0 10px currentColor;
+  filter: brightness(1.0); /* 增加亮度 */
+}
+
+/* 在窗口较窄时隐藏文字标签，只保留色点 */
+@media (max-width: 900px) {
+  .theme-label { display: none }
+  .theme-pill  { padding: 0 0.4rem }
+}
+
+/* ── 主题同步补丁（替代组件内硬编码色） ─────────────────────────────── */
+
+/* PlayerCard: YouTube placeholder 图标背景 */
+.placeholder-yt-bg {
+  fill: var(--primary);
+}
+
+/* MonCard: 发送按钮箭头 */
+.mon-send-arrow {
+  color: var(--send-arrow);
+}

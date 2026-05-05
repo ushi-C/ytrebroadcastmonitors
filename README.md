@@ -80,10 +80,13 @@ cd frontend && npm run preview
 - `app.log`
 - `channel_avatar_cache.json`
 - `avatar_cache/`
-- `scan_state.json`
 - `window_config.json`
 - `webview_data/`
 
+## 更新计划
+- 自定义图片/视频背景。
+- 全屏设置
+- 多预设频道表读取
 
 ## License
 

@@ -3,7 +3,7 @@
     <!-- Toolbar -->
     <div class="monitor-toolbar" ref="toolbarEl">
       <button id="mon-btn" class="mon-action-btn" :disabled="scanRunning" @click="startScan">
-        {{ scanRunning ? '扫描中…' : '开始扫描' }}
+        {{ scanRunning ? '扫描中…' : '同步序列' }}
       </button>
       <span id="mon-progress">{{ statusText }}</span>
 
@@ -17,7 +17,7 @@
           id="search-input"
           ref="searchInputEl"
           v-model="searchQuery"
-          placeholder="搜索频道…"
+          placeholder="频道检索…"
           @input="onSearchInput"
           @keydown.esc="closeDropdown"
           @focus="onSearchFocus"

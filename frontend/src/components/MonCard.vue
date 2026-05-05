@@ -26,11 +26,12 @@
           title="在 YouTube 打开"
           @click.stop
         >
+          <!-- YouTube 图标：使用主题渐变色 -->
           <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient :id="gradId" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#ffb3d9"/>
-                <stop offset="100%" style="stop-color:#d86fff"/>
+                <stop offset="0%" :style="`stop-color:var(--icon-grad-a)`"/>
+                <stop offset="100%" :style="`stop-color:var(--icon-grad-b)`"/>
               </linearGradient>
             </defs>
             <path :fill="`url(#${gradId})`" d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -43,7 +44,7 @@
           LIVE <span style="color:rgba(255,255,255,.85);font-weight:400;margin-left:0.15rem">直播中</span>
         </span>
         <button class="mon-send-btn" type="button" @click.stop="$emit('send', item)">
-          窗口播放 <span style="color:#ff8fab">▶</span>
+          窗口播放 <span class="mon-send-arrow">▶</span>
         </button>
       </div>
     </div>
@@ -59,6 +60,6 @@ const props = defineProps({
 })
 defineEmits(['send'])
 
-const gradId = `ytpink-${Math.random().toString(36).slice(2, 8)}`
+const gradId = `ytgrad-${Math.random().toString(36).slice(2, 8)}`
 const tb = computed(() => parseLiveTitleBlocks(props.item.title || ''))
 </script>

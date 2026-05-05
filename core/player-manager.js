@@ -160,7 +160,7 @@
     <div class="card-controls">
       <input class="url-input" id="url-${id}" type="text" placeholder="输入 YouTube 直播链接…">
       <button class="c-btn play" type="button">播放</button>
-      <button class="c-btn ref" type="button" title="刷新本窗">↻</button>
+      <button class="c-btn ref" type="button" title="窗口刷新">↻</button>
       <button class="c-btn ratio" type="button" title="横竖切换">纵</button>
       <div class="vol-wrap">
         <span class="vol-icon" id="vol-icon-${id}">🔊</span>
@@ -251,7 +251,7 @@
 
   function sendToPlayer(url, name) {
     if (S.layout.length >= S.MAX_PLAYERS) {
-      _showToast('播放器已满 (最多 ' + S.MAX_PLAYERS + ' 个窗口)'); return;
+      _showToast('播放器limit (最多 ' + S.MAX_PLAYERS + ' 个窗口)'); return;
     }
     addPlayer(url);
     _switchTab('player');
