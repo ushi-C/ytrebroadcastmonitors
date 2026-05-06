@@ -6,6 +6,7 @@ main.py
 """
 
 import argparse
+import base64
 import inspect
 import logging
 import os
@@ -60,25 +61,9 @@ def _setup_logger() -> logging.Logger:
 LOGGER = _setup_logger()
 
 
-# ── 全局 FastAPI 应用（供 uvicorn 使用）──────────────────────────────────────
-
-# 初始化各模块（注入依赖）
-_ac.init(
-    logger=LOGGER,
-    cache_file=os.path.join(_app_dir(), "channel_avatar_cache.json"),
-    cache_dir=os.path.join(_app_dir(), "avatar_cache"),
-)
-_sc.init(logger=LOGGER, app_dir_fn=_app_dir)
-
-app = build_app(
-    resource_dir=os.path.join(_resource_dir(), "static"),
-    app_dir_fn=_app_dir
-)
-
-
 # ── 服务器 ────────────────────────────────────────────────────────────────────
 
-def _run_server(host: str, port: int) -> None:
+def _run_server(app, host: str, port: int) -> None:
     uvicorn.run(app, host=host, port=port, log_level="warning")
 
 
@@ -100,10 +85,10 @@ def _get_virtual_screen_rect() -> tuple[int, int, int, int] | None:
         return None
     try:
         import ctypes
-        u32    = ctypes.windll.user32
-        left   = u32.GetSystemMetrics(76)
-        top    = u32.GetSystemMetrics(77)
-        width  = u32.GetSystemMetrics(78)
+        u32 = ctypes.windll.user32
+        left = u32.GetSystemMetrics(76)
+        top = u32.GetSystemMetrics(77)
+        width = u32.GetSystemMetrics(78)
         height = u32.GetSystemMetrics(79)
         if width > 0 and height > 0:
             return left, top, width, height
@@ -122,8 +107,8 @@ def _get_centered_position(width: int, height: int) -> tuple[int, int]:
 
 def _is_window_visible(x: int, y: int, width: int, height: int, rect: tuple) -> bool:
     left, top, screen_w, screen_h = rect
-    right  = left + screen_w
-    bottom = top  + screen_h
+    right = left + screen_w
+    bottom = top + screen_h
     margin = 80
     return (
         (x + margin) < right
@@ -134,13 +119,13 @@ def _is_window_visible(x: int, y: int, width: int, height: int, rect: tuple) -> 
 
 
 def _sanitize_window_config(config: WindowConfig) -> WindowConfig:
-    width  = max(980, int(config.window_width))
+    width = max(980, int(config.window_width))
     height = max(680, int(config.window_height))
-    x, y   = config.window_x, config.window_y
-    rect   = _get_virtual_screen_rect()
+    x, y = config.window_x, config.window_y
+    rect = _get_virtual_screen_rect()
     if rect and x is not None and y is not None:
         left, top, screen_w, screen_h = rect
-        width  = min(width,  screen_w)
+        width = min(width, screen_w)
         height = min(height, screen_h)
         if not _is_window_visible(x, y, width, height, rect):
             x, y = _get_centered_position(width, height)
@@ -156,8 +141,89 @@ def _sanitize_window_config(config: WindowConfig) -> WindowConfig:
 # ── WebView2 GUI ──────────────────────────────────────────────────────────────
 
 def _run_gui(url: str, cfg_manager: ConfigManager) -> None:
-    cfg    = _sanitize_window_config(cfg_manager.load())
-    window = webview.create_window(
+    cfg = _sanitize_window_config(cfg_manager.load())
+    splash_closed = False
+    ready_signaled = False
+    switch_lock = threading.Lock()
+
+    splash_logo_svg = """
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient x1="50%" y1="0%" x2="50%" y2="100%" id="nnneon-grad">
+      <stop stop-color="hsl(157, 100%, 54%)" offset="0%"/>
+      <stop stop-color="hsl(331, 87%, 61%)" offset="100%"/>
+    </linearGradient>
+    <filter id="nnneon-filter" x="-100%" y="-100%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="17 8"/>
+    </filter>
+    <filter id="nnneon-filter2" x="-100%" y="-100%" width="400%" height="400%">
+      <feGaussianBlur stdDeviation="10 17"/>
+    </filter>
+  </defs>
+  <g stroke-width="16" stroke="url(#nnneon-grad)" fill="none" transform="rotate(90, 400, 400)">
+    <polygon points="400,50 50,750 750,750" filter="url(#nnneon-filter)"/>
+    <polygon points="412,50 62,750 762,750" filter="url(#nnneon-filter2)" opacity="0.25"/>
+    <polygon points="388,50 38,750 738,750" filter="url(#nnneon-filter2)" opacity="0.25"/>
+    <polygon points="400,50 50,750 750,750"/>
+  </g>
+</svg>
+""".strip()
+    splash_logo_b64 = base64.b64encode(splash_logo_svg.encode("utf-8")).decode("ascii")
+    splash_html = f"""<!doctype html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading</title>
+<style>
+  html, body {{ margin: 0; width: 100%; height: 100%; background: transparent; overflow: hidden; }}
+  body {{ display: flex; align-items: center; justify-content: center; }}
+  .logo-wrap {{ width: 280px; height: 280px; display: flex; align-items: center; justify-content: center; border-radius: 72px; }}
+</style></head>
+<body><div class="logo-wrap"><img class="logo" src="data:image/svg+xml;base64,{splash_logo_b64}" alt="loading logo"></div></body></html>
+"""
+    splash_width = 320
+    splash_height = 320
+    splash_x, splash_y = _get_centered_position(splash_width, splash_height)
+
+    class _JsApi:
+        def notify_ready(self):
+            nonlocal splash_closed, ready_signaled
+            with switch_lock:
+                ready_signaled = True
+                if splash_closed:
+                    return {"ok": True, "already": True}
+                try:
+                    main_window.show()
+                    splash_window.destroy()
+                    splash_closed = True
+                    LOGGER.info("Startup splash closed by frontend ready signal.")
+                    return {"ok": True}
+                except Exception as exc:
+                    LOGGER.exception("Failed to switch to main window after ready signal.", exc_info=exc)
+                    return {"ok": False, "error": str(exc)}
+
+        def toggle_native_fullscreen(self):
+            try:
+                main_window.toggle_fullscreen()
+                return {"ok": True}
+            except Exception as exc:
+                LOGGER.exception("toggle_native_fullscreen failed", exc_info=exc)
+                return {"ok": False, "error": str(exc)}
+
+    js_api = _JsApi()
+
+    splash_window = webview.create_window(
+        "YVmonitor Loading",
+        html=splash_html,
+        width=splash_width,
+        height=splash_height,
+        min_size=(splash_width, splash_height),
+        x=splash_x,
+        y=splash_y,
+        frameless=True,
+        transparent=True,
+        on_top=True,
+    )
+
+    main_window = webview.create_window(
         "YVmonitor",
         url=url,
         width=cfg.window_width,
@@ -165,20 +231,22 @@ def _run_gui(url: str, cfg_manager: ConfigManager) -> None:
         min_size=(980, 680),
         x=cfg.window_x,
         y=cfg.window_y,
+        js_api=js_api,
+        hidden=True,
     )
 
     def _on_closing():
         try:
-            x, y   = int(window.x), int(window.y)
-            width  = int(window.width)
-            height = int(window.height)
-            rect   = _get_virtual_screen_rect()
+            x, y = int(main_window.x), int(main_window.y)
+            width = int(main_window.width)
+            height = int(main_window.height)
+            rect = _get_virtual_screen_rect()
             if rect:
                 left, top, screen_w, screen_h = rect
-                width  = min(max(980, width),  screen_w)
+                width = min(max(980, width), screen_w)
                 height = min(max(680, height), screen_h)
-                x = max(left - width  + 80, min(x, left + screen_w - 80))
-                y = max(top  - height + 80, min(y, top  + screen_h - 80))
+                x = max(left - width + 80, min(x, left + screen_w - 80))
+                y = max(top - height + 80, min(y, top + screen_h - 80))
             cfg_manager.save(WindowConfig(
                 window_x=x, window_y=y,
                 window_width=width, window_height=height,
@@ -192,13 +260,13 @@ def _run_gui(url: str, cfg_manager: ConfigManager) -> None:
     def _on_loaded():
         try:
             if cfg.zoom_level and cfg.zoom_level > 0 and cfg.zoom_level != 1.0:
-                window.evaluate_js(f"document.body.style.zoom = '{cfg.zoom_level}';")
+                main_window.evaluate_js(f"document.body.style.zoom = '{cfg.zoom_level}';")
                 LOGGER.info("Applied zoom_level=%s", cfg.zoom_level)
         except Exception as exc:
             LOGGER.exception("Failed to apply zoom level.", exc_info=exc)
 
-    window.events.closing += _on_closing
-    window.events.loaded  += _on_loaded
+    main_window.events.closing += _on_closing
+    main_window.events.loaded += _on_loaded
 
     storage_path = os.path.join(_app_dir(), "webview_data")
     os.makedirs(storage_path, exist_ok=True)
@@ -212,6 +280,21 @@ def _run_gui(url: str, cfg_manager: ConfigManager) -> None:
         start_kwargs["storage_path"] = storage_path
 
     try:
+        def _startup_timeout() -> None:
+            nonlocal splash_closed
+            time.sleep(10)
+            with switch_lock:
+                if splash_closed or ready_signaled:
+                    return
+                try:
+                    main_window.show()
+                    splash_window.destroy()
+                    splash_closed = True
+                    LOGGER.warning("Startup ready signal timeout(10s), forced main window show.")
+                except Exception as exc:
+                    LOGGER.exception("Failed to force show main window after startup timeout.", exc_info=exc)
+
+        threading.Thread(target=_startup_timeout, daemon=True).start()
         webview.start(**start_kwargs)
     except Exception as exc:
         LOGGER.exception("WebView2 initialization failed.", exc_info=exc)
@@ -230,29 +313,39 @@ def main() -> None:
     parser.add_argument("--mode", choices=["gui", "browser"], default="gui")
     args = parser.parse_args()
 
-    if getattr(sys, "frozen", False) and args.mode == "browser":
-        LOGGER.warning("Frozen executable does not allow --mode browser, force gui mode")
-        args.mode = "gui"
-
     LOGGER.info("Application startup: host=%s port=%s mode=%s", args.host, args.port, args.mode)
-    LOGGER.info("argv=%s", sys.argv)
 
     cfg_manager = ConfigManager(os.path.join(_app_dir(), "config.json"), LOGGER)
 
-    server_thread = threading.Thread(target=_run_server, args=(args.host, args.port), daemon=True)
+    # 初始化依赖
+    _ac.init(
+        logger=LOGGER,
+        cache_file=os.path.join(_app_dir(), "channel_avatar_cache.json"),
+        cache_dir=os.path.join(_app_dir(), "avatar_cache"),
+    )
+    _sc.init(logger=LOGGER, app_dir_fn=_app_dir)
+
+    # ✅ 正确创建 FastAPI app（传入 config_manager）
+    app = build_app(
+        resource_dir=os.path.join(_resource_dir(), "static"),
+        app_dir_fn=_app_dir,
+        config_manager=cfg_manager,
+    )
+
+    server_thread = threading.Thread(target=_run_server, args=(app, args.host, args.port), daemon=True)
     server_thread.start()
 
     if not _wait_server_ready(args.host, args.port):
-        LOGGER.error("Server failed to start: http://%s:%s", args.host, args.port)
-        raise RuntimeError(f"Server failed to start: http://{args.host}:{args.port}")
+        raise RuntimeError("Server failed to start")
 
-    app_url = f"http://{args.host}:{args.port}/"
+    url = f"http://{args.host}:{args.port}/"
+
     if args.mode == "browser":
-        webbrowser.open(app_url)
+        webbrowser.open(url)
         server_thread.join()
         return
 
-    _run_gui(app_url, cfg_manager)
+    _run_gui(url, cfg_manager)
 
 
 if __name__ == "__main__":
