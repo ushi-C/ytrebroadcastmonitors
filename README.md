@@ -84,9 +84,7 @@ cd frontend && npm run preview
 - `webview_data/`
 
 ## 更新计划
-- 自定义图片/视频背景。
-- 全屏设置
-- 多预设频道表读取
+- debug
 
 ## License
 
