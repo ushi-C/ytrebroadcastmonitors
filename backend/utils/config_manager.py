@@ -19,6 +19,9 @@ class WindowConfig:
     window_width: int = 1320
     window_height: int = 860
     zoom_level: float = 1.0
+    # 用户自定义背景图片的路径（相对于 config 同目录，或绝对路径均可）。
+    # 空字符串表示未设置。
+    background_path: str = ''
 
 
 class ConfigManager:
@@ -39,6 +42,7 @@ class ConfigManager:
                 window_width=self._to_int(raw.get("window_width"), 1320),
                 window_height=self._to_int(raw.get("window_height"), 860),
                 zoom_level=self._to_float(raw.get("zoom_level"), 1.0),
+                background_path=self._to_str(raw.get("background_path"), ''),
             )
             self.logger.info("Loaded config from %s: %s", self.config_path, cfg)
             return cfg
@@ -47,8 +51,9 @@ class ConfigManager:
             return WindowConfig()
 
     def save(self, config: WindowConfig) -> None:
-        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-        dir_name = os.path.dirname(self.config_path)
+        dir_name = os.path.dirname(self.config_path) or "."
+        os.makedirs(dir_name, exist_ok=True)
+
         fd, tmp_path = tempfile.mkstemp(prefix="config_", suffix=".tmp", dir=dir_name)
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
@@ -87,3 +92,9 @@ class ConfigManager:
             return float(value)
         except (TypeError, ValueError):
             return default
+
+    @staticmethod
+    def _to_str(value: Any, default: str) -> str:
+        if isinstance(value, str):
+            return value
+        return default

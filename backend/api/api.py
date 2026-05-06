@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from ..cache import avatar_cache as _ac
 from ..services import scan_service as _svc
+from backend.api.background_api import make_background_router
 
 
 def _make_lifespan(app_dir_fn):
@@ -30,7 +31,7 @@ def _make_lifespan(app_dir_fn):
     return lifespan
 
 
-def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
+def build_app(resource_dir: str, app_dir_fn, config_manager) -> FastAPI:
     """
     创建并返回配置好的 FastAPI 实例。
 
@@ -38,13 +39,21 @@ def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
     ----------
     resource_dir : str       打包后的资源根目录（存放 index.html 等静态文件）
     app_dir_fn   : callable  返回运行时数据目录的函数
+    config_manager : ConfigManager  配置管理器（用于 background API）
     """
     app = FastAPI(lifespan=_make_lifespan(app_dir_fn))
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+    # 注册 background API（FastAPI 正确方式）
+    app.include_router(
+        make_background_router(config_manager),
+        prefix="/api"
     )
 
     class CheckRequest(BaseModel):
@@ -61,8 +70,7 @@ def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
 
     @app.get("/api/channels")
     def get_channels():
-        file_path = os.path.join(app_dir_fn(), "channels.csv")
-        if not os.path.exists(file_path):
+        if not os.path.isdir(app_dir_fn()):
             return {"channels": []}
         return {"channels": _svc.load_channels_for_search(app_dir_fn)}
 
@@ -76,7 +84,7 @@ def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
         # ScanStateStore 是唯一写入口；results 中不存储 avatar。
         # avatar 在此处从缓存派生并注入响应副本（get_scan_status 返回深拷贝），
         # 不回写 state，monitor 轮次对头像无任何影响。
-        status = _svc.get_scan_status()          # deep-copy snapshot, safe to mutate
+        status = _svc.get_scan_status()  # deep-copy snapshot, safe to mutate
         for r in status.get("results", []):
             cid = r.get("id")
             r["avatar"] = _ac.get_cached_avatar(cid) if cid else ""
@@ -92,7 +100,10 @@ def build_app(resource_dir: str, app_dir_fn) -> FastAPI:
             raise HTTPException(status_code=413, detail="image too large") from exc
         except Exception as exc:
             raise HTTPException(status_code=404, detail="fetch failed") from exc
-        return FileResponse(path, headers={"Cache-Control": "public, max-age=31536000, immutable"})
+        return FileResponse(
+            path,
+            headers={"Cache-Control": "public, max-age=31536000, immutable"}
+        )
 
     # 静态文件必须最后挂载，否则会覆盖 API 路由
     app.mount("/", StaticFiles(directory=resource_dir, html=True), name="static")

@@ -36,4 +36,7 @@ export const appState = reactive({
   theme: 'neon-purple',         // 当前主题 id
   themeList: [],                // 由 initTheme() 填入完整列表
   themeInitialized: false,      // 防止组件在初始化前渲染主题选择器
+
+  // Global background system
+  userBackgroundUrl: '',
 })

@@ -10,6 +10,7 @@ channel_csv_reader.py
 from __future__ import annotations
 
 import csv
+import os
 from typing import Iterable
 
 CHANNELS_CSV_ENCODINGS: tuple[str, ...] = (
@@ -37,3 +38,19 @@ def read_channels_csv_rows(file_path: str, encodings: Iterable[str] = CHANNELS_C
         except Exception:
             continue
     return []
+
+
+def read_all_csv_rows_in_dir(dir_path: str) -> list[dict]:
+    """读取目录下全部 .csv 文件并合并。"""
+    if not os.path.isdir(dir_path):
+        return []
+
+    rows: list[dict] = []
+    for name in sorted(os.listdir(dir_path)):
+        if not name.lower().endswith(".csv"):
+            continue
+        file_path = os.path.join(dir_path, name)
+        if not os.path.isfile(file_path):
+            continue
+        rows.extend(read_channels_csv_rows(file_path))
+    return rows

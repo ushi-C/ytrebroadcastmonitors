@@ -24,7 +24,7 @@ from typing import Optional
 from yt_dlp import YoutubeDL
 
 from ..cache import avatar_cache as _ac
-from ..utils.channel_csv_reader import read_channels_csv_rows
+from ..utils.channel_csv_reader import read_all_csv_rows_in_dir
 from ..models.scan_state_store import ScanStateStore
 
 EXECUTOR         = ThreadPoolExecutor(max_workers=60)
@@ -282,13 +282,13 @@ def normalize_channel_live_url(q: str) -> tuple[str, str]:
 # ── CSV 批量扫描协程 ──────────────────────────────────────────────────────────
 
 async def start_scan_task() -> None:
-    """从 channels.csv 批量扫描直播，更新 SCAN_STATE。"""
-    file_path = os.path.join(_app_dir_fn(), "channels.csv")
-    if not os.path.exists(file_path):
+    """从应用目录下全部 CSV 批量扫描直播，更新 SCAN_STATE。"""
+    app_dir = _app_dir_fn()
+    if not os.path.isdir(app_dir):
         SCAN_STATE_STORE.set_running(False)
         return
 
-    channels = _load_channels_csv(file_path)
+    channels = _load_channels_csv(app_dir)
     if not channels:
         SCAN_STATE_STORE.set_running(False)
         return
@@ -377,5 +377,19 @@ async def start_live_monitor_task(token: int) -> None:
             SCAN_STATE_STORE.set_monitoring(False)
 
 
-def _load_channels_csv(file_path: str) -> list[dict]:
-    return read_channels_csv_rows(file_path)
+def _load_channels_csv(app_dir: str) -> list[dict]:
+    rows = read_all_csv_rows_in_dir(app_dir)
+    seen: set[tuple[str, str, str]] = set()
+    deduped: list[dict] = []
+    for r in rows:
+        cid = (r.get("id") or "").strip()
+        raw_url = (r.get("url") or r.get("URL") or "").strip()
+        title = (r.get("title") or r.get("name") or "").strip()
+        if not cid and not raw_url:
+            continue
+        key = (cid.lower(), raw_url.lower(), title)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(r)
+    return deduped

@@ -10,7 +10,7 @@ import asyncio
 import os
 
 from ..services import scanner as _sc
-from ..utils.channel_csv_reader import read_channels_csv_rows
+from ..utils.channel_csv_reader import read_all_csv_rows_in_dir
 
 
 async def check_single_channel(query: str, title: str = "") -> dict | None:
@@ -26,20 +26,27 @@ async def check_single_channel(query: str, title: str = "") -> dict | None:
 
 
 def load_channels_for_search(app_dir_fn) -> list[dict[str, str]]:
-    """读取 channels.csv 并返回前端搜索所需格式。"""
-    file_path = os.path.join(app_dir_fn(), "channels.csv")
-    if not os.path.exists(file_path):
+    """读取目录下全部 CSV 并返回前端搜索所需格式（含轻量去重）。"""
+    app_dir = app_dir_fn()
+    if not os.path.isdir(app_dir):
         return []
 
-    return [
-        {
+    seen: set[tuple[str, str, str]] = set()
+    merged: list[dict[str, str]] = []
+    for r in read_all_csv_rows_in_dir(app_dir):
+        item = {
             "id":    (r.get("id") or "").strip(),
             "url":   (r.get("url") or r.get("URL") or "").strip(),
             "title": (r.get("title") or r.get("name") or "").strip(),
         }
-        for r in read_channels_csv_rows(file_path)
-        if (r.get("id") or "").strip() or (r.get("url") or "").strip()
-    ]
+        if not item["id"] and not item["url"]:
+            continue
+        dedup_key = (item["id"].lower(), item["url"].lower(), item["title"])
+        if dedup_key in seen:
+            continue
+        seen.add(dedup_key)
+        merged.append(item)
+    return merged
 
 
 async def trigger_refresh_scan() -> str:
