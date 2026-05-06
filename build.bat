@@ -68,12 +68,12 @@ python -m pip install -q pyinstaller
 
 pyinstaller --noconfirm --clean --onefile --windowed --name YVmonitor ^
   --icon icon.ico ^
-  --add-data "backend/static;static" ^
+  --add-data "backend\static;static" ^
   --version-file version_info.txt ^
   --add-data "icon.ico;." ^
   --collect-all yt_dlp ^
   --collect-all webview ^
-  "%~dp0backend\main.py"
+  "backend\main.py"
 
 if errorlevel 1 (
   echo [ERROR] Build failed
@@ -84,5 +84,4 @@ echo.
 echo ========================================
 echo SUCCESS: dist\YVmonitor.exe
 echo ========================================
-pause
 exit /b 0

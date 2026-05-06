@@ -2,12 +2,10 @@
 #define MyAppVersion "1.0.0"
 #define MyAppPublisher "YVmonitor"
 #define MyAppExeName "YVmonitor.exe"
-#ifndef MyAppDefaultDir
-  #define MyAppDefaultDir "{autopf}\YVmonitor"
-#endif
+#define MyAppDefaultDir "{autopf}\YVmonitor"
 
 [Setup]
-AppId={A1E9F341-9B59-4A2C-9A84-8B82582D4A60}
+AppId={{A1E9F341-9B59-4A2C-9A84-8B82582D4A60}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -22,8 +20,7 @@ DefaultGroupName=YVmonitor
 DisableProgramGroupPage=yes
 DisableDirPage=no
 UsePreviousAppDir=no
-PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
+PrivilegesRequired=admin
 OutputDir=dist
 OutputBaseFilename=YVmonitor-Setup
 

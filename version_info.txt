@@ -1,4 +1,3 @@
-# UTF-8
 VSVersionInfo(
   ffi=FixedFileInfo(
     filevers=(1, 0, 0, 0),
@@ -19,7 +18,7 @@ VSVersionInfo(
           StringStruct(u'FileDescription', u'YVmonitor Desktop Application'),
           StringStruct(u'FileVersion', u'1.0.0.0'),
           StringStruct(u'InternalName', u'YVmonitor'),
-          StringStruct(u'LegalCopyright', u'Copyright © 2026 YVmonitor'),
+          StringStruct(u'LegalCopyright', u'Copyright \xa9 2026 YVmonitor'),
           StringStruct(u'OriginalFilename', u'YVmonitor.exe'),
           StringStruct(u'ProductName', u'YVmonitor'),
           StringStruct(u'ProductVersion', u'1.0.0.0')
