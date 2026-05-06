@@ -53,12 +53,7 @@ exit /b 1
 :build
 echo Using ISCC: %ISCC_CMD%
 
-:: Default install directory
-set "APP_DEFAULT_DIR={autopf}\YVmonitor"
-
-echo Installer target directory: %APP_DEFAULT_DIR%
-
-"%ISCC_CMD%" /DMyAppDefaultDir="%APP_DEFAULT_DIR%" installer.iss
+"%ISCC_CMD%" installer.iss
 
 if errorlevel 1 (
   echo [ERROR] Installer build failed.
