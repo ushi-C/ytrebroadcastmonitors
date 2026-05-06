@@ -7,10 +7,16 @@
 #endif
 
 [Setup]
-AppId={{A1E9F341-9B59-4A2C-9A84-8B82582D4A60}
+AppId={A1E9F341-9B59-4A2C-9A84-8B82582D4A60}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
+
+VersionInfoVersion=1.0.0.0
+VersionInfoCompany=Office USHI
+VersionInfoDescription=YVmonitor Installer
+VersionInfoCopyright=Copyright © 2026 YVmonitor
+
 DefaultDirName={#MyAppDefaultDir}
 DefaultGroupName=YVmonitor
 DisableProgramGroupPage=yes
@@ -20,6 +26,7 @@ PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=dist
 OutputBaseFilename=YVmonitor-Setup
+
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes
