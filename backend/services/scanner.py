@@ -26,6 +26,7 @@ from yt_dlp import YoutubeDL
 from ..cache import avatar_cache as _ac
 from ..utils.channel_csv_reader import read_all_csv_rows_in_dir
 from ..models.scan_state_store import ScanStateStore
+from ..services import youtube_probe as _yt_probe
 
 EXECUTOR         = ThreadPoolExecutor(max_workers=60)
 SCAN_STATE_STORE = ScanStateStore()
@@ -283,6 +284,12 @@ def normalize_channel_live_url(q: str) -> tuple[str, str]:
 
 async def start_scan_task() -> None:
     """从应用目录下全部 CSV 批量扫描直播，更新 SCAN_STATE。"""
+    if not _yt_probe.can_run_youtube_workflows():
+        _log("warning", "Scan blocked: YouTube network unavailable")
+        SCAN_STATE_STORE.reset_for_new_scan()
+        SCAN_STATE_STORE.set_running(False)
+        SCAN_STATE_STORE.set_monitoring(False)
+        return
     app_dir = _app_dir_fn()
     if not os.path.isdir(app_dir):
         SCAN_STATE_STORE.set_running(False)
