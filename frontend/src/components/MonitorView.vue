@@ -1,8 +1,47 @@
 <template>
   <div id="view-monitor" class="view" :class="{ active: active }">
     <!-- Toolbar -->
+
+
+    <div class="network-status-bar">
+
+      <button
+        class="mon-action-btn"
+        :disabled="isChecking"
+        @click="checkNetwork(true)"
+      >
+        检测 YouTube 连接性
+      </button>
+
+      <div class="network-status">
+        <span
+          class="status-dot"
+          :class="{
+            checking: isChecking,
+            online: !isChecking && networkState.youtube_available,
+            blocked: !isChecking && !networkState.youtube_available
+          }"
+        ></span>
+
+        <span class="status-text">
+          <template v-if="isChecking">
+            检测中...
+          </template>
+
+          <template v-else-if="networkState.youtube_available">
+            当前线路可用
+          </template>
+
+          <template v-else>
+            当前线路被 YouTube 风控
+          </template>
+        </span>
+      </div>
+
+    </div>
+
     <div class="monitor-toolbar" ref="toolbarEl">
-      <button id="mon-btn" class="mon-action-btn" :disabled="scanRunning" @click="startScan">
+      <button id="mon-btn" class="mon-action-btn" :disabled="scanRunning || isChecking || !networkState.youtube_available" @click="startScan">
         {{ scanRunning ? '扫描中…' : '同步序列' }}
       </button>
       <span id="mon-progress">{{ statusText }}</span>
@@ -29,6 +68,7 @@
         >✕</button>
       </div>
     </div>
+
 
     <!-- Search dropdown (absolutely positioned inside view) -->
     <SearchDropdown
@@ -60,6 +100,7 @@ import Fuse from 'fuse.js'
 import MonCard from './MonCard.vue'
 import SearchDropdown from './SearchDropdown.vue'
 import { useApiClient } from '../composables/useApiClient.js'
+import { useNetworkProbe } from '../composables/useNetworkProbe.js'
 import { appState } from '../stores/appState.js'
 import { monItemKey, extractHandleFromUrl } from '../composables/useDomUtils.js'
 
@@ -67,6 +108,7 @@ const props = defineProps({ active: Boolean })
 const emit = defineEmits(['send-to-player'])
 
 const { refreshScan, getStatus, getChannels } = useApiClient()
+const { isChecking, networkState, runProbe, loadStatus } = useNetworkProbe()
 
 const scanRunning = ref(false)
 const statusText = ref('')
@@ -83,9 +125,18 @@ const pendingAvatarIds = new Set()
 const renderedKeys = new Set()
 let avatarPollGeneration = 0   // 每次新扫描递增，用于取消过期的 avatar 轮询
 
+async function checkNetwork(force = false) {
+  await runProbe(force)
+}
+
 // --- Scan ---
 
 async function startScan() {
+  if (!networkState.value.youtube_available) {
+    statusText.value = '网络不可用，无法扫描'
+    return
+  }
+
   clearInterval(pollTimer)
   pollTimer = null
   renderedKeys.clear()
@@ -200,6 +251,9 @@ function pollPendingAvatars(attempt, generation) {
 // --- Search ---
 
 onMounted(async () => {
+  await loadStatus()
+  await checkNetwork(false)
+
   // Load initial status
   try {
     const state = await getStatus()
@@ -301,3 +355,98 @@ function onLiveFound(result) {
   }
 }
 </script>
+
+<style scoped>
+.network-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+
+  padding: 0.7rem 1.2rem;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(20,10,40,.92),
+      rgba(12,8,28,.92)
+    );
+
+  border-bottom: 1px solid rgba(120,80,200,.18);
+
+  font-size: 0.82rem;
+}
+
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+
+  min-width: 12rem;
+}
+
+.status-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+
+  color: #d8cff7;
+
+  font-family:
+    "Inter",
+    "PingFang SC",
+    sans-serif;
+}
+
+.status-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+
+  border-radius: 50%;
+
+  flex-shrink: 0;
+
+  position: relative;
+}
+
+.status-dot.online {
+  background: #52ffb8;
+
+  box-shadow:
+    0 0 8px rgba(82,255,184,.8),
+    0 0 16px rgba(82,255,184,.35);
+}
+
+.status-dot.blocked {
+  background: #ff4d6d;
+
+  box-shadow:
+    0 0 8px rgba(255,77,109,.75),
+    0 0 16px rgba(255,77,109,.3);
+}
+
+.status-dot.checking {
+  background: #ffd166;
+
+  animation: pulse-status 1.2s ease-in-out infinite;
+
+  box-shadow:
+    0 0 10px rgba(255,209,102,.7);
+}
+
+@keyframes pulse-status {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.4);
+    opacity: .6;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+</style>
