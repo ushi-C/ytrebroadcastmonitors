@@ -39,6 +39,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { extractVideoID } from '../composables/useDomUtils.js'
+import { useApiClient } from '../composables/useApiClient.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -55,6 +56,7 @@ const volume = ref(100)
 const ratioMode = ref('landscape')
 
 const iframeSrc = ref('about:blank')
+const { getNetworkStatus } = useApiClient()
 
 const windowStyle = computed(() => {
   if (!props.slot) return { left: '100%', top: '100%', width: '0', height: '0' }
@@ -82,7 +84,9 @@ function setStatus(msg, err = false) {
   isError.value = err
 }
 
-function loadVideo() {
+async function loadVideo() {
+  const net = await getNetworkStatus()
+  if (!net.youtube_available) { setStatus('YouTube 网络不可用', true); return }
   const vid = extractVideoID(urlInput.value)
   if (!vid) { setStatus('无效链接', true); return }
   const host = props.id % 2 === 0 ? 'https://www.youtube-nocookie.com' : 'https://www.youtube.com'
@@ -111,9 +115,9 @@ function onDragStart(e) {
   emit('drag-swap', { id: props.id, startX: e.clientX, startY: e.clientY })
 }
 
-function setUrl(url) {
+async function setUrl(url) {
   urlInput.value = url
-  loadVideo()
+  await loadVideo()
 }
 
 defineExpose({ setStatus, setUrl, iframeSrc, ratioMode })
