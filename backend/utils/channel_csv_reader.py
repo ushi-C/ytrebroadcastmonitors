@@ -40,6 +40,27 @@ def read_channels_csv_rows(file_path: str, encodings: Iterable[str] = CHANNELS_C
     return []
 
 
+def resolve_channels_dir(app_dir: str) -> str | None:
+    """定位频道 CSV 目录。安装包为 {app}/channels；开发时 app_dir 常为 backend/。"""
+    candidates: list[str] = [os.path.join(app_dir, "channels")]
+
+    if os.path.basename(os.path.normpath(app_dir)) == "backend":
+        candidates.append(os.path.join(os.path.dirname(app_dir), "channels"))
+
+    # 兼容旧布局：CSV 直接放在 app_dir 下
+    candidates.append(app_dir)
+
+    seen: set[str] = set()
+    for path in candidates:
+        norm = os.path.normpath(path)
+        if norm in seen:
+            continue
+        seen.add(norm)
+        if os.path.isdir(norm):
+            return norm
+    return None
+
+
 def read_all_csv_rows_in_dir(dir_path: str) -> list[dict]:
     """读取目录下全部 .csv 文件并合并。"""
     if not os.path.isdir(dir_path):

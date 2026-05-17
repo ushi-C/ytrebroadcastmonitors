@@ -123,7 +123,6 @@ let searchTimer = null
 // Pending avatar retry tracking
 const pendingAvatarIds = new Set()
 const renderedKeys = new Set()
-let avatarPollGeneration = 0   // 每次新扫描递增，用于取消过期的 avatar 轮询
 
 async function checkNetwork(force = false) {
   await runProbe(force)
@@ -145,7 +144,6 @@ async function startScan() {
   appState.scanRenderedKeys = new Set()
   appState.searchRenderedKeys = new Set()
 
-  avatarPollGeneration++     // 让旧的 pollPendingAvatars 循环自动停止
   scanRunning.value = true
   statusText.value = '正在启动扫描…'
 
@@ -184,33 +182,21 @@ async function checkStatus() {
       }
     }
 
-    // Avatar updates
-    const byId = new Map(list.filter(i => i.id).map(i => [i.id, i]))
-    for (const item of list) updateAvatar(item, byId)
-    if (pendingAvatarIds.size > 0) {
-      for (const id of [...pendingAvatarIds]) {
-        const it = byId.get(id)
-        if (it) updateAvatar(it, byId)
-      }
-    }
+    syncAvatarsFromList(list)
 
     if (state.is_running) {
       scanRunning.value = true
       statusText.value = `检测中: ${state.progress} / ${state.total}`
-      if (!pollTimer) pollTimer = setInterval(checkStatus, 2000)
     } else {
       scanRunning.value = false
       const n = list.length
       if (state.is_monitoring) {
         statusText.value = n ? `监测中 (当前 ${n} 个直播)` : '监测结束: 0 个直播'
-        if (!pollTimer) pollTimer = setInterval(checkStatus, 2000)
       } else {
         statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
-        clearInterval(pollTimer)
-        pollTimer = null
       }
-      if (pendingAvatarIds.size > 0) pollPendingAvatars(0, avatarPollGeneration)
     }
+    reconcileStatusPolling(state)
   } catch (e) {
     statusText.value = '后端未连接 (需启动 uvicorn)'
     clearInterval(pollTimer)
@@ -219,33 +205,44 @@ async function checkStatus() {
   }
 }
 
-function updateAvatar(item, byId) {
-  if (!item || !item.id) return
-  if (!item.avatar) { pendingAvatarIds.add(item.id); return }
-  // Find and update the reactive item
-  const found = monItems.value.find(i => i.id === item.id)
-  if (found && found.avatar !== item.avatar) {
-    found.avatar = item.avatar
+function syncAvatarsFromList(list) {
+  const byId = new Map(list.filter(i => i.id).map(i => [i.id, i]))
+  for (const item of list) updateAvatar(item)
+  // 已渲染卡片可能来自较早轮次，需对照最新 status 再同步一次
+  for (const card of monItems.value) {
+    if (!card.id) continue
+    const latest = byId.get(card.id)
+    if (latest) updateAvatar(latest)
   }
-  pendingAvatarIds.delete(item.id)
 }
 
-function pollPendingAvatars(attempt, generation) {
-  if (pendingAvatarIds.size === 0 || attempt >= 10) return
-  setTimeout(async () => {
-    // 如果已经开始了新扫描，停止此轮询
-    if (generation !== avatarPollGeneration) return
-    try {
-      const state = await getStatus()
-      const list = state.results || []
-      const byId = new Map(list.filter(i => i.id).map(i => [i.id, i]))
-      for (const id of [...pendingAvatarIds]) {
-        const it = byId.get(id)
-        if (it) updateAvatar(it, byId)
-      }
-    } catch (_) {}
-    pollPendingAvatars(attempt + 1, generation)
-  }, 2000)
+function reconcileStatusPolling(state) {
+  const shouldPoll = !!(
+    state.is_running ||
+    state.is_monitoring ||
+    pendingAvatarIds.size > 0
+  )
+  if (shouldPoll) {
+    if (!pollTimer) pollTimer = setInterval(checkStatus, 2000)
+  } else if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
+function updateAvatar(item) {
+  if (!item || !item.id) return
+  if (!item.avatar) {
+    pendingAvatarIds.add(item.id)
+    return
+  }
+  let found = monItems.value.find(i => i.id === item.id)
+  if (!found) {
+    const key = monItemKey(item)
+    found = monItems.value.find(i => monItemKey(i) === key)
+  }
+  if (found) found.avatar = item.avatar
+  pendingAvatarIds.delete(item.id)
 }
 
 // --- Search ---
@@ -266,6 +263,8 @@ onMounted(async () => {
         monItems.value.push(item)
       }
     }
+    syncAvatarsFromList(list)
+    reconcileStatusPolling(state)
     if (list.length) statusText.value = `上次结果: ${list.length} 个直播`
   } catch (_) {}
 
@@ -352,6 +351,10 @@ function onLiveFound(result) {
     appState.searchRenderedKeys.add(key)
     result._key = key
     monItems.value.unshift(result)
+    updateAvatar(result)
+    if (pendingAvatarIds.size > 0) {
+      reconcileStatusPolling({ is_running: false, is_monitoring: false })
+    }
   }
 }
 </script>

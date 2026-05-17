@@ -7,10 +7,9 @@ API 编排服务层，将路由层的编排代码集中管理。
 from __future__ import annotations
 
 import asyncio
-import os
 
 from ..services import scanner as _sc
-from ..utils.channel_csv_reader import read_all_csv_rows_in_dir
+from ..utils.channel_csv_reader import read_all_csv_rows_in_dir, resolve_channels_dir
 
 
 async def check_single_channel(query: str, title: str = "") -> dict | None:
@@ -26,14 +25,14 @@ async def check_single_channel(query: str, title: str = "") -> dict | None:
 
 
 def load_channels_for_search(app_dir_fn) -> list[dict[str, str]]:
-    """读取目录下全部 CSV 并返回前端搜索所需格式（含轻量去重）。"""
-    app_dir = app_dir_fn()
-    if not os.path.isdir(app_dir):
+    """读取 channels 目录下全部 CSV 并返回前端搜索所需格式（含轻量去重）。"""
+    channels_dir = resolve_channels_dir(app_dir_fn())
+    if not channels_dir:
         return []
 
     seen: set[tuple[str, str, str]] = set()
     merged: list[dict[str, str]] = []
-    for r in read_all_csv_rows_in_dir(app_dir):
+    for r in read_all_csv_rows_in_dir(channels_dir):
         item = {
             "id":    (r.get("id") or "").strip(),
             "url":   (r.get("url") or r.get("URL") or "").strip(),

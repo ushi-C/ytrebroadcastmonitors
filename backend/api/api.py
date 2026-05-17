@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from ..cache import avatar_cache as _ac
 from ..services import scan_service as _svc
+from ..utils.channel_csv_reader import resolve_channels_dir
 from ..services import youtube_probe as _yt_probe
 from backend.api.background_api import make_background_router
 
@@ -87,7 +88,7 @@ def build_app(resource_dir: str, app_dir_fn, config_manager) -> FastAPI:
 
     @app.get("/api/channels")
     def get_channels():
-        if not os.path.isdir(app_dir_fn()):
+        if not resolve_channels_dir(app_dir_fn()):
             return {"channels": []}
         return {"channels": _svc.load_channels_for_search(app_dir_fn)}
 

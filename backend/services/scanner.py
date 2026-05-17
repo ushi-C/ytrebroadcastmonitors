@@ -24,7 +24,7 @@ from typing import Optional
 from yt_dlp import YoutubeDL
 
 from ..cache import avatar_cache as _ac
-from ..utils.channel_csv_reader import read_all_csv_rows_in_dir
+from ..utils.channel_csv_reader import read_all_csv_rows_in_dir, resolve_channels_dir
 from ..models.scan_state_store import ScanStateStore
 from ..services import youtube_probe as _yt_probe
 
@@ -291,11 +291,13 @@ async def start_scan_task() -> None:
         SCAN_STATE_STORE.set_monitoring(False)
         return
     app_dir = _app_dir_fn()
-    if not os.path.isdir(app_dir):
+    channels_dir = resolve_channels_dir(app_dir)
+    if not channels_dir:
+        _log("warning", "Channels directory not found (app_dir=%s)", app_dir)
         SCAN_STATE_STORE.set_running(False)
         return
 
-    channels = _load_channels_csv(app_dir)
+    channels = _load_channels_csv(channels_dir)
     if not channels:
         SCAN_STATE_STORE.set_running(False)
         return
@@ -378,6 +380,11 @@ async def start_live_monitor_task(token: int) -> None:
 
             if not live_results:
                 break
+
+            for item in live_results:
+                if not _ac.get_cached_avatar((item.get("id") or "").strip()):
+                    loop.run_in_executor(EXECUTOR, fetch_avatar_background, item)
+
             await asyncio.sleep(_MONITOR_INTERVAL_SEC)
     finally:
         if token == _MONITOR_TOKEN:
