@@ -24,5 +24,24 @@ export function useApiClient() {
     return res.json()
   }
 
-  return { refreshScan, getStatus, checkChannel, getChannels }
+  async function getNetworkStatus() {
+    const res = await fetch('/api/network/status')
+    return res.json()
+  }
+
+  async function reportNetworkStatus(payload) {
+    const res = await fetch('/api/network/report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    return res.json()
+  }
+
+  async function requestNetworkCheck() {
+    const res = await fetch('/api/network/check', { method: 'POST' })
+    return res.json()
+  }
+
+  return { refreshScan, getStatus, checkChannel, getChannels, getNetworkStatus, reportNetworkStatus, requestNetworkCheck }
 }
