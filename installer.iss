@@ -39,7 +39,7 @@ Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: 
 [Files]
 Source: "dist\YVmonitor.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "icon.ico"; DestDir: "{app}"; Flags: ignoreversion
-Source: "channels.csv"; DestDir: "{app}"; Flags: onlyifdoesntexist skipifsourcedoesntexist
+Source: "channels\*.csv"; DestDir: "{app}\channels"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\YVmonitor"; Filename: "{app}\{#MyAppExeName}"; IconFilename: "{app}\icon.ico"
