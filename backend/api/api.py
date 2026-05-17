@@ -16,6 +16,7 @@ from pydantic import BaseModel
 
 from ..cache import avatar_cache as _ac
 from ..services import scan_service as _svc
+from ..services import youtube_probe as _yt_probe
 from backend.api.background_api import make_background_router
 
 
@@ -59,6 +60,22 @@ def build_app(resource_dir: str, app_dir_fn, config_manager) -> FastAPI:
     class CheckRequest(BaseModel):
         query: str
         title: str = ""
+
+    class NetworkReportRequest(BaseModel):
+        youtube_available: bool
+        reason: str = "UNKNOWN"
+
+    @app.get("/api/network/status")
+    async def get_network_status():
+        return _yt_probe.get_network_status()
+
+    @app.post("/api/network/report")
+    async def report_network_status(req: NetworkReportRequest):
+        return _yt_probe.report_network_status(req.youtube_available, req.reason)
+
+    @app.post("/api/network/check")
+    async def request_network_check():
+        return _yt_probe.request_network_check()
 
     @app.post("/api/check")
     async def check_single(req: CheckRequest):
