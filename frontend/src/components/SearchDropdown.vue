@@ -57,8 +57,8 @@
     <div class="sd-item" style="opacity:0.75" v-if="query">
       <div class="sd-avatar-placeholder">🔍</div>
       <div class="sd-info">
-        <div class="sd-name">直接检测: {{ query }}</div>
-        <div class="sd-meta">将 "{{ query }}" 作为 URL 或 ID 检测直播状态</div>
+        <div class="sd-name">输入频道名称或频道ID</div>
+        <div class="sd-meta">将 "{{ query }}" 作为title 或 ID 检测直播状态</div>
       </div>
       <span class="sd-badge offline">未检测</span>
       <button class="sd-check-btn" type="button" @click.stop="checkChannel({ id: query, url: query, title: '' })">开始检测</button>

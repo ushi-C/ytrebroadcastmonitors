@@ -787,12 +787,17 @@ body::after {
   align-items: center;
   gap: 0.375rem;
   flex: 1;
-  max-width: 26rem;
+  max-width: 22rem;
+  min-width: 18rem;
   padding: 0 0.5rem;
   background: rgba(30,15,55,.7);
   border: 1px solid rgba(100,60,180,.35);
   border-radius: 0.4rem;
   transition: border-color .15s;
+}
+.search-wrap.expanded {
+  min-width: 48rem;
+  max-width: 56rem;
 }
 .search-wrap:focus-within { border-color: color-mix(in srgb, var(--primary2) 60%, transparent) }
 .search-icon { width: 0.875rem; height: 0.875rem; color: var(--muted); flex-shrink: 0 }
@@ -825,8 +830,11 @@ body::after {
 /* ── 搜索下拉列表 ────────────────────────────────────────────────────────── */
 .search-dropdown {
   position: absolute;
-  left: 1.25rem;
-  width: calc(100% - 2.5rem);
+  top: calc(100% + 0.25rem);
+  left: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   max-height: 22rem;
   overflow-y: auto;
   background: rgba(18,10,36,.97);
@@ -835,6 +843,40 @@ body::after {
   border-radius: 0 0 0.5rem 0.5rem;
   box-shadow: 0 8px 32px rgba(0,0,0,.7);
   z-index: 500;
+}
+
+.input-menu {
+  position: absolute;
+  z-index: 1200;
+  min-width: 8rem;
+  background: rgba(18,10,36,.98);
+  border: 1px solid rgba(100,60,180,.35);
+  border-radius: 0.4rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  overflow: hidden;
+}
+.input-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.75rem;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+.input-menu button:hover {
+  background: rgba(90,40,160,.35);
+}
+
+/* PlayerCard 右键菜单：避免额外合成层导致右侧伴随块 */
+.player-input-menu {
+  contain: none;
+  isolation: auto;
+  backface-visibility: visible;
+  transform: none;
+  will-change: auto;
 }
 .sd-section-header {
   padding: 0.3rem 0.875rem;

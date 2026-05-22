@@ -23,6 +23,7 @@
         type="text"
         placeholder="输入 YouTube 直播链接…"
         @keydown.enter="loadVideo"
+        @contextmenu.prevent.stop="openInputMenu($event)"
       />
       <button class="c-btn play" type="button" @click="loadVideo">播放</button>
       <button class="c-btn ref" type="button" title="窗口刷新" @click="refreshOne">↻</button>
@@ -34,12 +35,29 @@
       <button class="c-btn cls" type="button" title="关闭" @click="$emit('remove', id)">✕</button>
     </div>
   </div>
+  <teleport to="body">
+    <div
+      v-if="menu.visible"
+      ref="menuEl"
+      class="input-menu player-input-menu"
+      :style="menuStyle"
+      @click.stop
+      @contextmenu.prevent
+    >
+      <button type="button" @click="doMenuAction('copy')">复制</button>
+      <button type="button" @click="doMenuAction('cut')">剪切</button>
+      <button type="button" @click="doMenuAction('paste')">粘贴</button>
+      <button type="button" @click="doMenuAction('selectAll')">全选</button>
+      <button type="button" @click="doMenuAction('clear')">清空</button>
+    </div>
+  </teleport>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { extractVideoID } from '../composables/useDomUtils.js'
 import { useApiClient } from '../composables/useApiClient.js'
+import { useInputContextMenu } from '../composables/useInputContextMenu.js'
 
 const props = defineProps({
   id: { type: Number, required: true },
@@ -78,6 +96,9 @@ const volIcon = computed(() => {
 })
 
 const ratioLabel = computed(() => ratioMode.value === 'portrait' ? '横' : '纵')
+const { menu, menuEl, menuStyle, openInputMenu, doMenuAction } = useInputContextMenu(
+  () => document.getElementById(`url-${props.id}`)
+)
 
 function setStatus(msg, err = false) {
   statusMsg.value = msg

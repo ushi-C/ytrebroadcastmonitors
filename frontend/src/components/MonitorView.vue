@@ -50,7 +50,7 @@
           {{ scanRunning ? '扫描中…' : '同步序列' }}
         </button>
 
-        <div class="search-wrap" id="search-wrap" ref="searchWrapEl">
+        <div class="search-wrap" :class="{ expanded: dropdownVisible || searchQuery.length > 0 }" id="search-wrap" ref="searchWrapEl">
           <svg class="search-icon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="9" cy="9" r="6"/><path d="M15 15l3 3"/>
           </svg>
@@ -63,26 +63,32 @@
             @input="onSearchInput"
             @keydown.esc="closeDropdown"
             @focus="onSearchFocus"
+            @contextmenu.prevent="openInputMenu($event)"
           />
           <button
             class="search-clear"
             :class="{ visible: searchQuery.length > 0 }"
             @click="clearSearch"
           >✕</button>
+
+          <SearchDropdown
+            :visible="dropdownVisible"
+            :query="searchQuery"
+            :hits="searchHits"
+            @send="$emit('send-to-player', $event)"
+            @live-found="onLiveFound"
+            @close="closeDropdown"
+          />
         </div>
       </div>
     </div>
-
-
-    <!-- Search dropdown (absolutely positioned inside view) -->
-    <SearchDropdown
-      :visible="dropdownVisible"
-      :query="searchQuery"
-      :hits="searchHits"
-      @send="$emit('send-to-player', $event)"
-      @live-found="onLiveFound"
-      @close="closeDropdown"
-    />
+    <div v-if="menu.visible" ref="menuEl" class="input-menu" :style="menuStyle" @click.stop>
+      <button type="button" @click="doMenuAction('copy')">复制</button>
+      <button type="button" @click="doMenuAction('cut')">剪切</button>
+      <button type="button" @click="doMenuAction('paste')">粘贴</button>
+      <button type="button" @click="doMenuAction('selectAll')">全选</button>
+      <button type="button" @click="doMenuAction('clear')">清空</button>
+    </div>
 
     <!-- Card grid -->
     <div class="monitor-body">
@@ -100,12 +106,13 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import Fuse from 'fuse.js'
 import MonCard from './MonCard.vue'
 import SearchDropdown from './SearchDropdown.vue'
 import { useApiClient } from '../composables/useApiClient.js'
 import { useNetworkProbe } from '../composables/useNetworkProbe.js'
+import { useInputContextMenu } from '../composables/useInputContextMenu.js'
 import { appState } from '../stores/appState.js'
 import { monItemKey, extractHandleFromUrl } from '../composables/useDomUtils.js'
 
@@ -354,11 +361,16 @@ onUnmounted(() => {
 })
 
 const searchWrapEl = ref(null)
+const searchInputEl = ref(null)
+const { menu, menuEl, menuStyle, openInputMenu, doMenuAction, closeMenu } = useInputContextMenu(
+  () => searchInputEl.value
+)
 
 function onDocClick(e) {
   if (searchWrapEl.value && !searchWrapEl.value.contains(e.target)) {
     closeDropdown()
   }
+  closeMenu()
 }
 
 function onSearchInput() {
