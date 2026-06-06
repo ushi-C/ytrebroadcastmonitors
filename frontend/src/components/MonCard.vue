@@ -44,7 +44,8 @@
           LIVE <span style="color:rgba(255,255,255,.85);font-weight:400;margin-left:0.15rem">直播中</span>
         </span>
         <button class="mon-send-btn" type="button" @click.stop="$emit('send', item)">
-          窗口播放 <span class="mon-send-arrow">▶</span>
+          <span class="mon-send-label">窗口播放</span>
+          <span class="mon-send-arrow" aria-hidden="true"></span>
         </button>
       </div>
     </div>

@@ -1,5 +1,7 @@
 /* ── 变量 & 基础重置 ─────────────────────────────────────────────────────── */
 :root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "PingFang SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+
   --primary:       #e8005a;
   --primary2:      #9b30ff;
 
@@ -50,7 +52,8 @@
 html, body { height: 100%; overflow: hidden }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   background: var(--bg);
   color: var(--text);
   display: flex;
@@ -333,22 +336,53 @@ body::after {
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 0.2rem;
-  padding: 0.18rem 0.55rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  color: rgba(160,240,200,.95);
+  gap: 0.3rem;
+  padding: 0.16rem 0.58rem 0.16rem 0.52rem;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background: rgba(40,140,90,.15);
   border: 1px solid rgba(80,200,140,.28);
   border-radius: 0.875rem;
   cursor: pointer;
   white-space: nowrap;
-  transition: color .15s, background .15s, border-color .15s;
+  transition: background .15s, border-color .15s;
+}
+.mon-send-label {
+  font-family: inherit;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+  color: rgba(180,250,215,.98);
+  text-shadow: 0 0 10px rgba(80,200,140,.3);
+  transition: color .15s, text-shadow .15s;
+}
+.mon-send-arrow {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  flex-shrink: 0;
+  align-self: center;
+  border-style: solid;
+  border-width: 0.34rem 0 0.34rem 0.58rem;
+  border-color: transparent transparent transparent var(--send-arrow);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--send-arrow) 55%, transparent));
+  transition: transform .15s ease, filter .15s ease;
 }
 .mon-send-btn:hover {
-  color: rgba(180,255,220,.98);
   background: rgba(50,180,110,.22);
   border-color: rgba(100,230,160,.4);
+}
+.mon-send-btn:hover .mon-send-label {
+  color: rgba(190,255,225,.98);
+  text-shadow: 0 0 10px rgba(100,230,160,.35);
+}
+.mon-send-btn:hover .mon-send-arrow {
+  transform: translateX(1px);
+  filter: drop-shadow(0 0 6px var(--send-arrow));
 }
 
 /* ══ 播放阵列工具栏 ══════════════════════════════════════════════════════════ */
@@ -1106,7 +1140,3 @@ body::after {
   fill: var(--primary);
 }
 
-/* MonCard: 发送按钮箭头 */
-.mon-send-arrow {
-  color: var(--send-arrow);
-}
