@@ -12,6 +12,8 @@ avatar_cache.py
 - get_cached_avatar(channel_id)
 - fetch_channel_avatar(url, cid)
 - start_cleanup_loop()
+- start_flush_loop() / flush()  — 定时刷盘 + 退出强制保存
+- set_broadcast_fn(fn)          — 注册 WS 广播回调
 """
 
 from __future__ import annotations
@@ -31,6 +33,9 @@ AVATAR_CACHE_MAX_AGE_SEC    = 30 * 24 * 3600
 AVATAR_CACHE_CLEAN_INTERVAL = 3600
 CHANNEL_AVATAR_CACHE_MAX_ITEMS = 5_000
 
+# 定时刷盘间隔（秒）
+_FLUSH_INTERVAL_SEC = 12
+
 _YDL_TIMEOUT = 8
 
 _logger: logging.Logger | None = None
@@ -43,6 +48,14 @@ _inflight_fetch: set[str] = set()
 # 组件实例，由 init() 正式初始化
 _memory_cache: ChannelAvatarMemoryCache | None = None
 _disk_cache: AvatarDiskCache | None = None
+
+# ── 刷盘机制：内存实时 + 异步定时持久化 ──
+_dirty_lock = threading.Lock()
+_is_dirty = False
+_flush_stop_event = threading.Event()
+
+# ── WS 广播回调（由 api.py 注入，用于头像更新后推送前端）──
+_broadcast_fn = None
 
 
 def init(
@@ -81,13 +94,73 @@ def save_channel_avatar_cache() -> None:
 
 def _set_channel_cache(channel_id: str, avatar_url: str) -> None:
     _memory_cache.set(channel_id, avatar_url)
+    _mark_dirty()
+
+
+def _mark_dirty() -> None:
+    """标记内存缓存已变更，等待定时刷盘。"""
+    global _is_dirty
+    with _dirty_lock:
+        _is_dirty = True
 
 
 def _persist_avatar(channel_id: str, avatar_url: str) -> str:
+    """
+    更新内存缓存并标记 dirty，不再即时写盘。
+    内存绝对实时：调用返回后 get_cached_avatar() 立即可见。
+    磁盘延迟写入：由后台 _flush_loop 每 12s 集中刷盘。
+    """
     _set_channel_cache(channel_id, avatar_url)
-    save_channel_avatar_cache()
-    _log("info", "[avatar-cache] saved channel_id=%s", channel_id)
+    _log("info", "[avatar-cache] cached channel_id=%s (dirty, deferred flush)", channel_id)
+
+    # 触发 WS 广播：头像更新后推送前端
+    if _broadcast_fn:
+        try:
+            _broadcast_fn()
+        except Exception as exc:
+            _log("warning", "[avatar-cache] broadcast callback failed: %s", exc)
+
     return avatar_proxy_url(avatar_url)
+
+
+# ── 定时刷盘机制 ──────────────────────────────────────────────────────────────
+
+def start_flush_loop() -> None:
+    """启动后台定时刷盘线程（每 12 秒检查一次 is_dirty）。"""
+    t = threading.Thread(target=_flush_loop, daemon=True)
+    t.start()
+    _log("info", "[avatar-cache] flush loop started (interval=%ds)", _FLUSH_INTERVAL_SEC)
+
+
+def _flush_loop() -> None:
+    while not _flush_stop_event.wait(_FLUSH_INTERVAL_SEC):
+        try:
+            _flush_if_dirty()
+        except Exception:
+            _log("exception", "[avatar-cache] flush loop error")
+
+
+def _flush_if_dirty() -> None:
+    global _is_dirty
+    with _dirty_lock:
+        if not _is_dirty:
+            return
+        _is_dirty = False
+    # 在锁外执行 I/O，避免阻塞读写
+    _memory_cache.save_to_file(_cache_file)
+
+
+def flush() -> None:
+    """强制刷盘（供 FastAPI lifespan 退出时调用）。"""
+    _flush_stop_event.set()
+    _flush_if_dirty()
+    _log("info", "[avatar-cache] flush completed on shutdown")
+
+
+def set_broadcast_fn(fn) -> None:
+    """注册 WS 广播回调函数（由 api.py 注入）。"""
+    global _broadcast_fn
+    _broadcast_fn = fn
 
 
 # ── 磁盘图片缓存 ──────────────────────────────────────────────────────────────
@@ -206,8 +279,8 @@ def _cleanup_loop() -> None:
         time.sleep(AVATAR_CACHE_CLEAN_INTERVAL)
         try:
             _cleanup_avatar_cache()
-        except Exception:
-            pass
+        except Exception as exc:
+            _log("warning", "[avatar-cache] cleanup loop error: %s", exc)
 
 
 def _cleanup_avatar_cache():

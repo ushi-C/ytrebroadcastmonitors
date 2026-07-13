@@ -67,7 +67,7 @@ def get_scan_status() -> dict:
         "is_monitoring": state.get("is_monitoring", False),
         "progress":   state["progress"],
         "total":      state["total"],
-        "results":    state["results"],  
+        "results":    state["results"],
     }
 
 

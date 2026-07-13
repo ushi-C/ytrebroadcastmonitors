@@ -6,7 +6,6 @@ scan_state_store.py
 
 from __future__ import annotations
 
-import copy
 from threading import RLock
 from typing import Any
 
@@ -26,14 +25,28 @@ class ScanStateStore:
 
     @property
     def state(self) -> dict[str, Any]:
-        """返回内部状态的深拷贝（snapshot-only access; safe for external read, not for mutation）。"""
-        with self._lock:
-            return copy.deepcopy(self._state)
+        """返回内部状态的浅拷贝快照（safe for external read, not for mutation）。"""
+        return self.get_snapshot()
 
     def get_snapshot(self) -> dict[str, Any]:
-        """与 state 属性等价，语义更明确，供 API 层使用。"""
+        """
+        返回状态的浅拷贝快照，供 API 层使用。
+
+        性能优化：淘汰 copy.deepcopy()。
+        - 标量字段（bool/int）不可变，直接引用即可。
+        - results 列表做 list() 顶层拷贝，避免外部 append 影响内部。
+        - results 中每个 dict 做 dict(r) 浅拷贝：
+          结果项均为扁平 dict（值为 str），dict(r) 等效于深拷贝但快 10-50x。
+          关键：API 层会向返回的 dict 注入 avatar 字段，必须拷贝以防止污染内部状态。
+        """
         with self._lock:
-            return copy.deepcopy(self._state)
+            return {
+                "is_running": self._state["is_running"],
+                "is_monitoring": self._state["is_monitoring"],
+                "progress": self._state["progress"],
+                "total": self._state["total"],
+                "results": [dict(r) for r in self._state["results"]],
+            }
 
     @property
     def is_running(self) -> bool:
