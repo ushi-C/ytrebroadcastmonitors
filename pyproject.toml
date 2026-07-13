@@ -1,0 +1,30 @@
+[tool.ruff]
+# 目标 Python 版本
+target-version = "py311"
+line-length = 100
+
+# 仅检查，不做自动修复
+fix = false
+
+# 排除目录
+extend-exclude = [
+    "dist",
+    "__pycache__",
+    "*.egg-info",
+    ".git",
+    ".workbuddy",
+    "frontend",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort (import ordering)
+]
+
+ignore = [
+    "E501",  # line too long (让 black/formatter 处理)
+    "I001",  # isort unsorted imports (宽松模式)
+]
