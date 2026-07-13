@@ -92,7 +92,7 @@ export function useNetworkProbe() {
             autoplay: 1, controls: 0, mute: 1, playsinline: 1, rel: 0, modestbranding: 1, enablejsapi: 1,
           },
           events: {
-            onReady: (ev) => { try { ev.target.playVideo() } catch (_) {} },
+            onReady: (ev) => { try { ev.target.playVideo() } catch (_) { /* ignore autoplay veto */ } },
             onError: async () => resolve(await finalize(false, 'PLAYER_ERROR')),
             onStateChange: async (ev) => {
               const ps = window.YT.PlayerState

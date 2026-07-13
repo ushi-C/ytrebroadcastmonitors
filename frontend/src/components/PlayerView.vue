@@ -103,6 +103,7 @@
         v-for="id in layout"
         :key="'ifr-' + id"
         :id="`iframe-${id}`"
+        :ref="el => iframeRefs[id] = el"
         class="wm-iframe-layer"
         :src="iframeSrcs[id] || 'about:blank'"
         :style="iframeStyles[id] || {}"
@@ -138,6 +139,7 @@ const cardRefs    = reactive({})
 const iframeSrcs  = reactive({})
 const iframeStyles = reactive({})
 const ratioModes  = reactive({})
+const iframeRefs  = reactive({})  // Q5: Vue ref 映射替代 getElementById
 
 const deskEl = ref(null)
 const slots  = ref([])
@@ -219,6 +221,7 @@ function removePlayer(id) {
   delete iframeSrcs[id]
   delete iframeStyles[id]
   delete ratioModes[id]
+  delete iframeRefs[id]
   nextTick(relayout)
 }
 
@@ -231,14 +234,14 @@ function setLayoutCols(c) {
 function onLoadVideo({ id, src, refresh, volume, relayout: doRelayout, ratioMode }) {
   // Volume-only command — post to iframe and bail early
   if (volume !== undefined) {
-    const ifr = document.getElementById(`iframe-${id}`)
+    const ifr = iframeRefs[id]
     if (ifr?.src && ifr.src !== 'about:blank') {
       try {
         ifr.contentWindow.postMessage(
           JSON.stringify({ event: 'command', func: 'setVolume', args: [volume] }),
           '*'
         )
-      } catch (_) {}
+      } catch (_) { /* volume API not available */ }
     }
     return
   }
@@ -300,14 +303,13 @@ function refreshAll() {
     return
   }
 
-  layout.value.forEach((id, i) => {
-    setTimeout(() => {
-      const oldSrc = iframeSrcs[id]
-      if (!oldSrc || oldSrc === 'about:blank') return
-      iframeSrcs[id] = 'about:blank'
-      nextTick(() => nextTick(() => { iframeSrcs[id] = oldSrc }))
-    }, i * 300)
-  })
+  // 批量触发所有窗口刷新，Vue 响应式会合并 DOM 更新到同一帧
+  for (const id of layout.value) {
+    const oldSrc = iframeSrcs[id]
+    if (!oldSrc || oldSrc === 'about:blank') continue
+    iframeSrcs[id] = 'about:blank'
+    nextTick(() => nextTick(() => { iframeSrcs[id] = oldSrc }))
+  }
 
   emit('toast', '正在刷新全部窗口…')
 }

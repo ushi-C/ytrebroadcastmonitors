@@ -26,8 +26,8 @@ export function extractVideoID(url) {
 export function parseLiveTitleBlocks(title) {
   title = title || ''
   title = title
-    .replace(/[\s\-\/]*\d{4}[-/]\d{1,2}[-/]\d{1,2}$/, '')
-    .replace(/[\s\-\/]*\d{8}$/, '')
+    .replace(/[\s\-/]*\d{4}[-/]\d{1,2}[-/]\d{1,2}$/, '')
+    .replace(/[\s\-/]*\d{8}$/, '')
     .trim()
 
   const alnum = 'a-zA-Z0-9\u4e00-\u9fa5\u3040-\u309f\u30a0-\u30ff'

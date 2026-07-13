@@ -7,7 +7,7 @@
     <div class="sd-empty" v-else-if="query">没有匹配的频道</div>
 
     <div
-      v-for="ch in hits"
+      v-for="(ch, idx) in hits"
       :key="ch.id || ch.url"
       class="sd-item"
       @click="openUrl(checkCacheResult(ch))"
@@ -36,12 +36,12 @@
         <!-- 发送图标：使用主题渐变色 -->
         <svg viewBox="0 0 800 800" preserveAspectRatio="xMidYMid meet">
           <defs>
-            <linearGradient :id="`grad-sd-${ch.id || ch.url}`" x1="50%" y1="0%" x2="50%" y2="100%">
+            <linearGradient :id="`grad-sd-${idx}`" x1="50%" y1="0%" x2="50%" y2="100%">
               <stop offset="45%" :style="`stop-color:var(--icon-grad-a)`"/>
               <stop offset="100%" :style="`stop-color:var(--icon-grad-b)`"/>
             </linearGradient>
           </defs>
-          <g stroke-width="40" :stroke="`url(#grad-sd-${ch.id || ch.url})`" fill="none">
+          <g stroke-width="40" :stroke="`url(#grad-sd-${idx})`" fill="none">
             <circle cx="400" cy="400" r="340.5"/>
             <circle cx="400" cy="400" r="215.5"/>
             <circle cx="400" cy="400" r="90.5"/>

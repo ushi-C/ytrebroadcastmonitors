@@ -1,13 +1,15 @@
 /**
  * useBackground.js
  * ─────────────────
- * 背景图片持久化 composable。
+ * 背景图片/视频持久化 composable。
  *
  * 存储策略（双轨，优先后端）：
- *   1. 后端 API（pywebview 环境）：PUT /api/background  存图片文件
- *                                   GET /api/background  取图片（返回 base64 JSON）
- *                                   DELETE /api/background  清除
- *   2. IndexedDB（浏览器 / 降级）：存完整 base64，无 5 MB 限制
+ *   1. 后端 API（pywebview 环境）：
+ *        PUT /api/background   上传（multipart/form-data）
+ *        GET /api/background   获取背景元信息（返回 static URL）
+ *        DELETE /api/background  清除
+ *      背景文件通过 /static/ 流式加载（HTTP Range 支持）
+ *   2. IndexedDB（浏览器 / 降级）：存完整 base64 作为兜底
  *
  * localStorage 仅存一个标志位 'yv_bg_source'（'backend' | 'idb'），
  * 用来在启动时决定从哪里恢复，不存图片本体。
@@ -81,23 +83,29 @@ async function isBackendAvailable() {
   return _backendAvailable
 }
 
-/** 上传图片到后端，接受 base64 data URL */
-async function backendSave(dataUrl) {
+/** 上传文件到后端（multipart/form-data），返回 static URL */
+async function backendSave(file) {
+  const formData = new FormData()
+  formData.append('file', file)
   const res = await fetch('/api/background', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ data: dataUrl }),
+    body: formData,
   })
-  if (!res.ok) throw new Error(`backend save failed: ${res.status}`)
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({}))
+    throw new Error(detail.detail || `backend save failed: ${res.status}`)
+  }
+  const json = await res.json()
+  return json.url  // e.g. "/static/user_background.jpg"
 }
 
-/** 从后端读取背景，返回 base64 data URL 或 null */
+/** 从后端读取背景，返回 static URL 或 null */
 async function backendLoad() {
   const res = await fetch('/api/background')
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`backend load failed: ${res.status}`)
   const json = await res.json()
-  return json.data || null
+  return json.url || null
 }
 
 /** 清除后端背景 */
@@ -118,9 +126,9 @@ export function useBackground() {
     try {
       // 优先尝试后端
       if (await isBackendAvailable()) {
-        const dataUrl = await backendLoad()
-        if (dataUrl) {
-          appState.userBackgroundUrl = dataUrl
+        const staticUrl = await backendLoad()
+        if (staticUrl) {
+          appState.userBackgroundUrl = staticUrl
           return
         }
       }
@@ -129,10 +137,18 @@ export function useBackground() {
       const dataUrl = await idbGet(IDB_KEY)
       if (dataUrl) {
         appState.userBackgroundUrl = dataUrl
-        // 如果后端可用，补传到后端（迁移旧数据）
+        // 如果后端可用，迁移到后端（data URL → blob → file → upload）
         if (await isBackendAvailable()) {
-          await backendSave(dataUrl)
-          await idbDelete(IDB_KEY)
+          try {
+            const resp = await fetch(dataUrl)
+            const blob = await resp.blob()
+            const file = new File([blob], 'background.jpg', { type: blob.type || 'image/jpeg' })
+            const staticUrl = await backendSave(file)
+            appState.userBackgroundUrl = staticUrl
+            await idbDelete(IDB_KEY)
+          } catch {
+            // 迁移失败保留 IDB 兜底
+          }
         }
       }
     } catch (err) {
@@ -142,7 +158,7 @@ export function useBackground() {
 
   /**
    * 处理文件选择事件，保存背景。
-   * @param {File} file  - 用户选择的图片文件
+   * @param {File} file  - 用户选择的图片/视频文件
    * @returns {Promise<boolean>} 是否成功
    */
   async function saveBackground(file) {
@@ -151,16 +167,17 @@ export function useBackground() {
     error.value = ''
 
     try {
-      const dataUrl = await fileToDataUrl(file)
-
-      // 先更新界面（立即生效）
-      appState.userBackgroundUrl = dataUrl
+      // 先更新界面（立即生效：用 data URL / blob URL 预览）
+      const previewUrl = await fileToDataUrl(file)
+      appState.userBackgroundUrl = previewUrl
 
       // 持久化
       if (await isBackendAvailable()) {
-        await backendSave(dataUrl)
+        const staticUrl = await backendSave(file)
+        // 上传成功后切换为持久化静态 URL（支持 HTTP Range 流式加载）
+        appState.userBackgroundUrl = staticUrl
       } else {
-        await idbSet(IDB_KEY, dataUrl)
+        await idbSet(IDB_KEY, previewUrl)
       }
 
       return true

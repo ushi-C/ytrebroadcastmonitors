@@ -113,6 +113,7 @@ import SearchDropdown from './SearchDropdown.vue'
 import { useApiClient } from '../composables/useApiClient.js'
 import { useNetworkProbe } from '../composables/useNetworkProbe.js'
 import { useInputContextMenu } from '../composables/useInputContextMenu.js'
+import { useWebSocket } from '../composables/useWebSocket.js'
 import { appState } from '../stores/appState.js'
 import { monItemKey, extractHandleFromUrl } from '../composables/useDomUtils.js'
 
@@ -129,18 +130,27 @@ const searchQuery = ref('')
 const dropdownVisible = ref(false)
 const searchHits = ref([])
 let fuse = null
-let pollTimer = null
 let searchTimer = null
-const POLL_IDLE_MS = 2000
-const POLL_PENDING_MS = 600
+
 // 图片加载失败后短时冷却再重试
 const AVATAR_RETRY_COOLDOWN_MS = 2500
+// WS 降级：若启动后此时间内未收到初始状态，主动拉取一次
+const WS_FALLBACK_INIT_MS = 1500
 
 // Pending avatar retry tracking
 const pendingAvatarIds = new Set()
 /** channel_id -> { url, until } */
 const avatarRetryCooldown = new Map()
 const renderedKeys = new Set()
+
+// ── WebSocket 连接 ──
+const { wsConnected, connect: wsConnect, disconnect: wsDisconnect } = useWebSocket({
+  onMessage: (msg) => {
+    if (msg.type === 'status' && msg.data) {
+      handleStatusUpdate(msg.data)
+    }
+  },
+})
 
 async function checkNetwork(force = false) {
   await runProbe(force)
@@ -154,8 +164,6 @@ async function startScan() {
     return
   }
 
-  clearInterval(pollTimer)
-  pollTimer = null
   renderedKeys.clear()
   pendingAvatarIds.clear()
   avatarRetryCooldown.clear()
@@ -168,69 +176,50 @@ async function startScan() {
 
   try {
     await refreshScan()
+    // 后端 scan 启动后会通过 WS 推送状态更新，无需前端轮询
   } catch (e) {
     statusText.value = '后端未连接 (需启动 uvicorn)'
     scanRunning.value = false
-    return
+  }
+}
+
+/**
+ * 处理后端推送的状态更新（替代原 checkStatus 轮询）。
+ */
+function handleStatusUpdate(state) {
+  const list = state.results || []
+  const latestKeys = new Set(list.map(item => monItemKey(item)))
+
+  // Remove cards that are no longer present in backend results
+  monItems.value = monItems.value.filter(item => latestKeys.has(monItemKey(item)))
+  renderedKeys.clear()
+  for (const item of monItems.value) renderedKeys.add(monItemKey(item))
+
+  // Incremental render
+  for (const item of list) {
+    const key = monItemKey(item)
+    if (!renderedKeys.has(key)) {
+      renderedKeys.add(key)
+      item._key = key
+      monItems.value.push(item)
+    }
   }
 
-  setTimeout(() => {
-    startPollTimer()
-    checkStatus()
-  }, 800)
-}
+  syncAvatarsFromList(list)
 
-function pollIntervalMs() {
-  return pendingAvatarIds.size > 0 ? POLL_PENDING_MS : POLL_IDLE_MS
-}
-
-function startPollTimer() {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(checkStatus, pollIntervalMs())
-}
-
-async function checkStatus() {
-  try {
-    const state = await getStatus()
-    const list = state.results || []
-    const latestKeys = new Set(list.map(item => monItemKey(item)))
-
-    // Remove cards that are no longer present in backend results
-    monItems.value = monItems.value.filter(item => latestKeys.has(monItemKey(item)))
-    renderedKeys.clear()
-    for (const item of monItems.value) renderedKeys.add(monItemKey(item))
-
-    // Incremental render
-    for (const item of list) {
-      const key = monItemKey(item)
-      if (!renderedKeys.has(key)) {
-        renderedKeys.add(key)
-        item._key = key
-        monItems.value.push(item)
-      }
-    }
-
-    syncAvatarsFromList(list)
-
-    if (state.is_running) {
-      scanRunning.value = true
-      statusText.value = `检测中: ${state.progress} / ${state.total}`
+  if (state.is_running) {
+    scanRunning.value = true
+    statusText.value = `检测中: ${state.progress} / ${state.total}`
+  } else {
+    scanRunning.value = false
+    const n = list.length
+    if (state.is_monitoring) {
+      statusText.value = n ? `监测中 (当前 ${n} 个直播)` : '监测结束: 0 个直播'
     } else {
-      scanRunning.value = false
-      const n = list.length
-      if (state.is_monitoring) {
-        statusText.value = n ? `监测中 (当前 ${n} 个直播)` : '监测结束: 0 个直播'
-      } else {
-        statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
-      }
+      statusText.value = n ? `检测完成 (共 ${n} 个直播)` : '上次: 0 个直播'
     }
-    reconcileStatusPolling(state)
-  } catch (e) {
-    statusText.value = '后端未连接 (需启动 uvicorn)'
-    clearInterval(pollTimer)
-    pollTimer = null
-    scanRunning.value = false
   }
+  cleanExpiredCooldowns()
 }
 
 function syncAvatarsFromList(list) {
@@ -244,17 +233,17 @@ function syncAvatarsFromList(list) {
   }
 }
 
-function reconcileStatusPolling(state) {
-  const shouldPoll = !!(
-    state.is_running ||
-    state.is_monitoring ||
-    pendingAvatarIds.size > 0
-  )
-  if (shouldPoll) {
-    startPollTimer()
-  } else if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+const AVATAR_COOLDOWN_MAX_ENTRIES = 500
+
+function cleanExpiredCooldowns() {
+  if (avatarRetryCooldown.size === 0) return
+  if (avatarRetryCooldown.size >= AVATAR_COOLDOWN_MAX_ENTRIES) {
+    avatarRetryCooldown.clear()
+    return
+  }
+  const now = Date.now()
+  for (const [id, entry] of avatarRetryCooldown) {
+    if (now >= entry.until) avatarRetryCooldown.delete(id)
   }
 }
 
@@ -283,10 +272,6 @@ function onCardAvatarError(item) {
   }
   item.avatar = ''
   pendingAvatarIds.add(item.id)
-  reconcileStatusPolling({
-    is_running: scanRunning.value,
-    is_monitoring: false,
-  })
 }
 
 function updateAvatar(item) {
@@ -316,22 +301,18 @@ onMounted(async () => {
   await loadStatus()
   await checkNetwork(false)
 
-  // Load initial status
-  try {
-    const state = await getStatus()
-    const list = state.results || []
-    for (const item of list) {
-      const key = monItemKey(item)
-      if (!renderedKeys.has(key)) {
-        renderedKeys.add(key)
-        item._key = key
-        monItems.value.push(item)
-      }
+  // 建立 WebSocket 连接（后端会立即推送当前状态）
+  wsConnect()
+
+  // 降级：如果 WS 1.5s 内未收到数据，主动拉一次初始状态
+  setTimeout(async () => {
+    if (monItems.value.length === 0 && !scanRunning.value) {
+      try {
+        const state = await getStatus()
+        handleStatusUpdate(state)
+      } catch (_) { /* fallback pull failed, WS will retry */ }
     }
-    syncAvatarsFromList(list)
-    reconcileStatusPolling(state)
-    if (list.length) statusText.value = `上次结果: ${list.length} 个直播`
-  } catch (_) {}
+  }, WS_FALLBACK_INIT_MS)
 
   // Load channels for search
   try {
@@ -350,13 +331,11 @@ onMounted(async () => {
         minMatchCharLength: 1,
       })
     }
-  } catch (_) {}
-
-  document.addEventListener('click', onDocClick)
+  } catch (_) { /* init query may fail, ok */ }
 })
 
 onUnmounted(() => {
-  clearInterval(pollTimer)
+  wsDisconnect()
   document.removeEventListener('click', onDocClick)
 })
 
@@ -422,9 +401,6 @@ function onLiveFound(result) {
     result._key = key
     monItems.value.unshift(result)
     updateAvatar(result)
-    if (pendingAvatarIds.size > 0) {
-      reconcileStatusPolling({ is_running: false, is_monitoring: false })
-    }
   }
 }
 </script>

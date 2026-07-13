@@ -5,14 +5,21 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src --ext .js,.vue",
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "fuse.js": "^7.0.0",
+    "pinia": "^2.1.0",
     "vue": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.24.0",
+    "prettier": "^3.2.0",
+    "typescript": "^5.4.0",
     "vite": "^5.0.0"
   }
 }
